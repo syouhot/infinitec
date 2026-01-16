@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import '../styles/CanvasIndex.css'
+import '../styles/CanvasMenu.css'
 import { LuSlack } from "react-icons/lu";
 function CanvasIndex({ onBack }: { onBack: () => void }) {
   const [showBackButton, setShowBackButton] = useState(false)

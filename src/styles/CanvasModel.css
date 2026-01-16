@@ -1,0 +1,172 @@
+.canvas-model-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.model-display {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+}
+
+.model-display:hover {
+  color: rgba(255, 255, 255, 1);
+}
+
+.model-menu {
+  position: absolute;
+  top: 0;
+  right: 60px;
+  background: rgba(30, 30, 40, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(10px);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  min-width: 200px;
+}
+
+.model-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.menu-section {
+  margin-bottom: 12px;
+}
+
+.menu-section:last-child {
+  margin-bottom: 0;
+}
+
+.menu-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.color-button {
+  width: 28px;
+  height: 28px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.color-button:hover {
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.color-button.active {
+  border-color: rgba(100, 200, 255, 1);
+  box-shadow: 0 0 8px rgba(100, 200, 255, 0.3);
+}
+
+.size-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.size-button {
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.size-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.size-button.active {
+  background: rgba(100, 200, 255, 0.3);
+  border-color: rgba(100, 200, 255, 0.3);
+  box-shadow: 0 0 8px rgba(100, 200, 255, 0.2);
+}
+
+.size-preview {
+  width: 24px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 2px;
+}
+
+.size-button.active .size-preview {
+  background: rgba(100, 200, 255, 1);
+}
+
+@media (max-width: 768px) {
+  .canvas-model-container {
+    top: 15px;
+    right: 15px;
+  }
+
+  .model-display {
+    width: 40px;
+    height: 40px;
+  }
+
+  .model-display svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .model-menu {
+    right: 50px;
+    min-width: 180px;
+    padding: 10px;
+  }
+
+  .color-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+  }
+
+  .color-button {
+    width: 24px;
+    height: 24px;
+  }
+
+  .size-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+
+  .size-button {
+    width: 32px;
+    height: 32px;
+  }
+}

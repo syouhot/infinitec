@@ -9,15 +9,13 @@ import {
   FaDrawPolygon, 
   FaFont 
 } from 'react-icons/fa6'
+import { useToolStore } from '../store'
 import '../styles/Toolbar.css'
 
-interface ToolbarProps {
-    onToolSelect: (tool: string) => void
-    selectedTool: string
-}
-
-function Toolbar({ onToolSelect, selectedTool }: ToolbarProps) {
+function Toolbar() {
     const [isOpen, setIsOpen] = useState(false)
+    const selectedTool = useToolStore((state) => state.selectedTool)
+    const setSelectedTool = useToolStore((state) => state.setSelectedTool)
 
     const tools = [
     { id: 'pencil', icon: FaPencil, label: '画笔' },
@@ -29,13 +27,8 @@ function Toolbar({ onToolSelect, selectedTool }: ToolbarProps) {
     { id: 'text', icon: FaFont, label: '文本' }
   ]
 
-  const selectedToolIcon = tools.find(tool => tool.id === selectedTool)?.icon || FaPencil
-
   return (
     <div className="toolbar-container">
-      <div className="selected-tool-display">
-        {React.createElement(selectedToolIcon, { size: 24 })}
-      </div>
       <div 
         className="toolbar-indicator"
         onClick={() => setIsOpen(!isOpen)}
@@ -47,7 +40,7 @@ function Toolbar({ onToolSelect, selectedTool }: ToolbarProps) {
           <button
             key={tool.id}
             className={`tool-button ${selectedTool === tool.id ? 'active' : ''}`}
-            onClick={() => onToolSelect(tool.id)}
+            onClick={() => setSelectedTool(tool.id)}
             title={tool.label}
           >
             <tool.icon size={20} />
