@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import Home from './components/Home'
 import CanvasIndex from './components/CanvasIndex'
+import Toolbar from './components/Toolbar'
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawingMode, setIsDrawingMode] = useState(false)
+  const [selectedTool, setSelectedTool] = useState('pencil')
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -69,11 +71,20 @@ function App() {
     setIsDrawingMode(false)
   }
 
+  const handleToolSelect = (tool: string) => {
+    setSelectedTool(tool)
+  }
+
   return (
     <div className={`app ${isDrawingMode ? 'drawing-mode' : ''}`}>
       <canvas ref={canvasRef} className="starfield" />
       <Home onDoubleClick={handleDoubleClick} isHidden={isDrawingMode} />
-      {isDrawingMode && <CanvasIndex onBack={handleExitDrawingMode} />}
+      {isDrawingMode && (
+        <>
+          <CanvasIndex onBack={handleExitDrawingMode} />
+          <Toolbar onToolSelect={handleToolSelect} selectedTool={selectedTool} />
+        </>
+      )}
     </div>
   )
 }
