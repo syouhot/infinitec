@@ -1,6 +1,7 @@
 import React from 'react'
 import { FaEraser } from 'react-icons/fa6'
 import { useToolStore, useCanvasStore } from '../store'
+import { CANVAS_CONFIG } from '../config/content'
 import '../styles/Eraser.css'
 
 function Eraser() {
@@ -40,8 +41,8 @@ function Eraser() {
           <div className="slider-container">
             <input
               type="range"
-              min="10"
-              max="100"
+              min={CANVAS_CONFIG.ERASER_MIN_SIZE}
+              max={CANVAS_CONFIG.ERASER_MAX_SIZE}
               value={eraserSize}
               onChange={handleSizeChange}
               className="eraser-slider"
