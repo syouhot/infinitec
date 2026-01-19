@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CANVAS_CONFIG } from '../config/content'
-import { createBoundary, clampOffset, clampZoomScale, calculateClampedOffset } from '../util/boundary'
+import { createBoundary, clampOffset, calculateClampedOffset } from '../util/boundary'
+import { handleZoom } from '../util/zoom'
 import '../styles/CanvasMain.css'
 
 interface CanvasMainProps {
@@ -191,27 +192,25 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
     const mouseX = e.clientX
     const mouseY = e.clientY
     
-    const delta = e.deltaY > 0 ? -CANVAS_CONFIG.ZOOM_STEP : CANVAS_CONFIG.ZOOM_STEP
-    const newScale = clampZoomScale(zoomScale, delta, CANVAS_CONFIG.MAX_ZOOM_SCALE, CANVAS_CONFIG.MIN_ZOOM_SCALE, boundary)
-    
-    const scaleRatio = newScale / zoomScale
-    
-    const newOffset = {
-      x: (mouseX - screenWidth / 2) * (1 - scaleRatio) + canvasOffset.x * scaleRatio,
-      y: (mouseY - screenHeight / 2) * (1 - scaleRatio) + canvasOffset.y * scaleRatio
-    }
-    
-    const clampedOffset = calculateClampedOffset(
-      newOffset,
-      newScale,
+    const zoomResult = handleZoom(
+      { scale: zoomScale, offset: canvasOffset },
+      e.deltaY,
+      mouseX,
+      mouseY,
+      screenWidth,
+      screenHeight,
       canvasSize.width,
       canvasSize.height,
-      screenWidth,
-      screenHeight
+      {
+        maxScale: CANVAS_CONFIG.MAX_ZOOM_SCALE,
+        minScale: CANVAS_CONFIG.MIN_ZOOM_SCALE,
+        zoomStep: CANVAS_CONFIG.ZOOM_STEP
+      },
+      boundary
     )
     
-    setZoomScale(newScale)
-    setCanvasOffset(clampedOffset)
+    setZoomScale(zoomResult.newScale)
+    setCanvasOffset(zoomResult.newOffset)
   }
 
   return (
