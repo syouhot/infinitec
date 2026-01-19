@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { CANVAS_CONFIG } from '../config/content'
 import { createBoundary, clampOffset, calculateClampedOffset } from '../util/boundary'
 import { handleZoom } from '../util/zoom'
@@ -9,9 +9,11 @@ interface CanvasMainProps {
   currentColor: string
   currentLineWidth: number
   eraserSize: number
+  onZoomChange?: (scale: number, offset: { x: number; y: number }) => void;
 }
 
-function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }: CanvasMainProps) {
+const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
+  const { selectedTool, currentColor, currentLineWidth, eraserSize, onZoomChange } = props;
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const lastPositionRef = useRef<{ x: number, y: number } | null>(null)
@@ -24,6 +26,47 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
   const [boundary, setBoundary] = useState({ minX: 0, maxX: 0, minY: 0, maxY: 0 })
   const [zoomScale, setZoomScale] = useState(1)
 
+  // 处理外部缩放请求
+  const zoomToScaleHandler = useCallback((scale: number) => {
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // 计算新的缩放中心点（屏幕中心）
+    const centerX = windowWidth / 2;
+    const centerY = windowHeight / 2;
+
+    // 获取当前可视区域中心对应的画布坐标
+    const currentCenterCanvasX = (windowWidth / 2 - (windowWidth / 2 - canvasSize.width / 2 + canvasOffset.x)) / zoomScale;
+    const currentCenterCanvasY = (windowHeight / 2 - (windowHeight / 2 - canvasSize.height / 2 + canvasOffset.y)) / zoomScale;
+
+    // 计算新的偏移量，以确保缩放后中心点不变
+    const newOffsetX = centerX - currentCenterCanvasX * scale - (windowWidth / 2 - canvasSize.width / 2);
+    const newOffsetY = centerY - currentCenterCanvasY * scale - (windowHeight / 2 - canvasSize.height / 2);
+
+    // 应用边界限制
+    const clampedOffset = calculateClampedOffset(
+      { x: newOffsetX, y: newOffsetY },
+      scale,
+      canvasSize.width,
+      canvasSize.height,
+      windowWidth,
+      windowHeight
+    );
+
+    setZoomScale(scale);
+    setCanvasOffset(clampedOffset);
+
+    // 如果提供了回调，通知偏移量变化
+    if (onZoomChange) {
+      onZoomChange(scale, clampedOffset);
+    }
+  }, [zoomScale, canvasOffset, canvasSize, onZoomChange]);
+
+  // 使用 useImperativeHandle 暴露方法给父组件
+  useImperativeHandle(ref, () => ({
+    zoomToScale: zoomToScaleHandler
+  }));
+
   useEffect(() => {
     const canvas = drawingCanvasRef.current
     if (!canvas) return
@@ -35,24 +78,24 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
       const windowWidth = window.innerWidth
       const windowHeight = window.innerHeight
       const padding = Math.max(windowWidth, windowHeight) * CANVAS_CONFIG.CANVAS_SCALE_MULTIPLIER
-      
+
       const newCanvasSize = {
         width: windowWidth + padding,
         height: windowHeight + padding
       }
-      
+
       setCanvasSize(newCanvasSize)
       setGridSize(newCanvasSize)
-      
+
       canvas.width = newCanvasSize.width
       canvas.height = newCanvasSize.height
-      
+
       const offsetX = padding / 2
       const offsetY = padding / 2
       ctx.setTransform(1, 0, 0, 1, offsetX, offsetY)
-      
+
       document.documentElement.style.setProperty('--grid-size', `${CANVAS_CONFIG.GRID_SIZE}px`)
-      
+
       setBoundary(createBoundary(newCanvasSize.width, newCanvasSize.height, windowWidth, windowHeight))
     }
 
@@ -63,6 +106,37 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
       window.removeEventListener('resize', updateSizes)
     }
   }, [])
+
+  // 以指定点为中心进行缩放的函数
+  const zoomToScaleWithPoint = useCallback((newScale: number, centerX: number, centerY: number) => {
+    // 计算当前鼠标位置对应的画布坐标
+    const currentCanvasX = (centerX - (window.innerWidth / 2 - canvasSize.width / 2 + canvasOffset.x)) / zoomScale;
+    const currentCanvasY = (centerY - (window.innerHeight / 2 - canvasSize.height / 2 + canvasOffset.y)) / zoomScale;
+
+    // 计算新的偏移量，以确保缩放后鼠标位置对应的画布坐标不变
+    const newOffsetX = centerX - currentCanvasX * newScale - (window.innerWidth / 2 - canvasSize.width / 2);
+    const newOffsetY = centerY - currentCanvasY * newScale - (window.innerHeight / 2 - canvasSize.height / 2);
+
+    // 应用边界限制
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    const clampedOffset = calculateClampedOffset(
+      { x: newOffsetX, y: newOffsetY },
+      newScale,
+      canvasSize.width,
+      canvasSize.height,
+      windowWidth,
+      windowHeight
+    );
+
+    setZoomScale(newScale);
+    setCanvasOffset(clampedOffset);
+
+    // 如果提供了回调，通知偏移量变化
+    if (props.onZoomChange) {
+      props.onZoomChange(newScale, clampedOffset);
+    }
+  }, [canvasOffset, canvasSize, zoomScale, props.onZoomChange]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 1) {
@@ -75,19 +149,19 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
     }
     if (selectedTool !== 'pencil' && selectedTool !== 'eraser') return
     setIsDrawing(true)
-    
+
     const windowWidth = window.innerWidth
     const windowHeight = window.innerHeight
     const padding = Math.max(windowWidth, windowHeight) * CANVAS_CONFIG.CANVAS_SCALE_MULTIPLIER
     const offsetX = padding / 2
     const offsetY = padding / 2
-    
+
     const canvasLeft = windowWidth / 2 - canvasSize.width / 2 + canvasOffset.x
     const canvasTop = windowHeight / 2 - canvasSize.height / 2 + canvasOffset.y
-    
-    lastPositionRef.current = { 
-      x: (e.clientX - canvasLeft) / zoomScale - offsetX, 
-      y: (e.clientY - canvasTop) / zoomScale - offsetY 
+
+    lastPositionRef.current = {
+      x: (e.clientX - canvasLeft) / zoomScale - offsetX,
+      y: (e.clientY - canvasTop) / zoomScale - offsetY
     }
   }
 
@@ -95,7 +169,7 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
     if (isDragging && dragStartRef.current) {
       const deltaX = e.clientX - dragStartRef.current.x
       const deltaY = e.clientY - dragStartRef.current.y
-      
+
       const newOffset = calculateClampedOffset(
         { x: canvasOffset.x + deltaX, y: canvasOffset.y + deltaY },
         zoomScale,
@@ -105,7 +179,7 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
         window.innerHeight
       )
       setCanvasOffset(newOffset)
-      
+
       dragStartRef.current = { x: e.clientX, y: e.clientY }
       return
     }
@@ -188,7 +262,7 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
 
   return (
     <>
-      <div 
+      <div
         className="grid-background"
         style={{
           width: `${gridSize.width}px`,
@@ -198,8 +272,8 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
           transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px)) scale(${zoomScale})`
         }}
       />
-      <canvas 
-        ref={drawingCanvasRef} 
+      <canvas
+        ref={drawingCanvasRef}
         className={`drawing-canvas ${selectedTool === 'eraser' ? 'eraser-mode' : ''}`}
         style={{
           left: '50%',
@@ -219,7 +293,7 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
         onContextMenu={handleContextMenu}
       />
       {cursorPosition && selectedTool === 'eraser' && (
-        <div 
+        <div
           className="eraser-cursor"
           style={{
             left: `${cursorPosition.x - (eraserSize * zoomScale) / 2}px`,
@@ -232,5 +306,5 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
     </>
   )
 }
-
-export default CanvasMain
+)
+export default CanvasMain;

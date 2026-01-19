@@ -18,6 +18,15 @@
   transform-origin: center center;
 }
 
+/* 主题背景覆盖 */
+body.canvas-bg-dark .grid-background {
+  background: #000 !important;
+}
+
+body.canvas-bg-light .grid-background {
+  background: #fff !important;
+}
+
 .drawing-canvas {
   position: absolute;
   top: 50%;

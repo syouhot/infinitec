@@ -167,3 +167,155 @@
     font-size: 0.9rem;
   }
 }
+
+.theme-options {
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.theme-options span {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.theme-buttons {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.theme-btn {
+  flex: 1;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8rem;
+  outline: none;
+  padding: 0;
+  font-weight: 500;
+}
+
+.theme-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-btn:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.theme-btn.active {
+  background: rgba(100, 200, 255, 0.3);
+  border-color: rgba(100, 200, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(100, 200, 255, 0.5), 0 0 12px rgba(100, 200, 255, 0.3);
+  color: rgba(255, 255, 255, 1);
+  font-weight: 600;
+}
+
+/* 特定主题按钮的个性化样式 */
+.theme-btn[data-theme="default"] {
+  background: linear-gradient(135deg, rgba(128, 128, 128, 0.2), rgba(255, 255, 255, 0.1));
+}
+
+.theme-btn[data-theme="dark"] {
+  background: linear-gradient(135deg, #2a2a2a, #000);
+  color: #fff;
+}
+
+.theme-btn[data-theme="light"] {
+  background: linear-gradient(135deg, #f0f0f0, #fff);
+  color: #333;
+}
+
+/* 画布背景主题样式 */
+body.canvas-bg-dark .grid-background {
+  background: #000 !important;
+}
+
+body.canvas-bg-light .grid-background {
+  background: #fff !important;
+}
+
+/* 根据背景调整外部菜单按钮和图标颜色 */
+body.canvas-bg-dark .menu-icon {
+  background: rgba(20, 20, 20, 0.9); /* 深色背景 */
+  border: 1px solid rgba(100, 100, 100, 0.5);
+  color: rgba(200, 200, 200, 0.9);
+}
+
+body.canvas-bg-dark .menu-icon:hover {
+  background: rgba(60, 60, 60, 0.9);
+  border-color: rgba(150, 150, 150, 0.6);
+  color: rgba(255, 255, 255, 1);
+}
+
+body.canvas-bg-light .menu-icon {
+  background: rgba(245, 245, 245, 0.9); /* 浅色背景 */
+  border: 1px solid rgba(150, 150, 150, 0.5);
+  color: rgba(50, 50, 50, 0.9);
+}
+
+body.canvas-bg-light .menu-icon:hover {
+  background: rgba(200, 200, 200, 0.9);
+  border-color: rgba(100, 100, 100, 0.6);
+  color: rgba(0, 0, 0, 1);
+}
+
+/* 右上角CanvasModel按钮和橡皮擦按钮的颜色调整 */
+body.canvas-bg-dark .model-display,
+body.canvas-bg-dark .eraser-display {
+  background: rgba(20, 20, 20, 0.9); /* 深色背景 */
+  border: 1px solid rgba(100, 100, 100, 0.5);
+  color: rgba(200, 200, 200, 0.9);
+}
+
+body.canvas-bg-dark .model-display:hover,
+body.canvas-bg-dark .eraser-display:hover {
+  background: rgba(60, 60, 60, 0.9);
+  border-color: rgba(150, 150, 150, 0.6);
+  color: rgba(255, 255, 255, 1);
+}
+
+body.canvas-bg-light .model-display,
+body.canvas-bg-light .eraser-display {
+  background: rgba(245, 245, 245, 0.9); /* 浅色背景 */
+  border: 1px solid rgba(150, 150, 150, 0.5);
+  color: rgba(50, 50, 50, 0.9);
+}
+
+body.canvas-bg-light .model-display:hover,
+body.canvas-bg-light .eraser-display:hover {
+  background: rgba(200, 200, 200, 0.9);
+  border-color: rgba(100, 100, 100, 0.6);
+  color: rgba(0, 0, 0, 1);
+}
+
+/* 当工具被选中时的活动状态 */
+body.canvas-bg-dark .model-display.active,
+body.canvas-bg-dark .eraser-display.active {
+  background: rgba(60, 60, 60, 0.9);
+  border-color: rgba(150, 150, 150, 0.6);
+  color: rgba(255, 255, 255, 1);
+}
+
+body.canvas-bg-light .model-display.active,
+body.canvas-bg-light .eraser-display.active {
+  background: rgba(200, 200, 200, 0.9);
+  border-color: rgba(100, 100, 100, 0.6);
+  color: rgba(0, 0, 0, 1);
+}
