@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CANVAS_CONFIG } from '../config/content'
-import { createBoundary, clampOffset } from '../util/boundary'
+import { createBoundary, clampOffset, clampZoomScale, calculateClampedOffset } from '../util/boundary'
 import '../styles/CanvasMain.css'
 
 interface CanvasMainProps {
@@ -21,6 +21,7 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
   const [gridSize, setGridSize] = useState({ width: 0, height: 0 })
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
   const [boundary, setBoundary] = useState({ minX: 0, maxX: 0, minY: 0, maxY: 0 })
+  const [zoomScale, setZoomScale] = useState(1)
 
   useEffect(() => {
     const canvas = drawingCanvasRef.current
@@ -63,16 +64,29 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
   }, [])
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (e.button === 2) {
+    if (e.button === 1) {
       setIsDragging(true)
       dragStartRef.current = { x: e.clientX, y: e.clientY }
       return
     }
+    if (e.button === 2) {
+      return
+    }
     if (selectedTool !== 'pencil' && selectedTool !== 'eraser') return
     setIsDrawing(true)
+    
+    const windowWidth = window.innerWidth
+    const windowHeight = window.innerHeight
+    const padding = Math.max(windowWidth, windowHeight) * CANVAS_CONFIG.CANVAS_SCALE_MULTIPLIER
+    const offsetX = padding / 2
+    const offsetY = padding / 2
+    
+    const canvasLeft = windowWidth / 2 - canvasSize.width / 2 + canvasOffset.x
+    const canvasTop = windowHeight / 2 - canvasSize.height / 2 + canvasOffset.y
+    
     lastPositionRef.current = { 
-      x: e.clientX - canvasOffset.x, 
-      y: e.clientY - canvasOffset.y 
+      x: (e.clientX - canvasLeft) / zoomScale - offsetX, 
+      y: (e.clientY - canvasTop) / zoomScale - offsetY 
     }
   }
 
@@ -81,7 +95,14 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
       const deltaX = e.clientX - dragStartRef.current.x
       const deltaY = e.clientY - dragStartRef.current.y
       
-      const newOffset = clampOffset(canvasOffset, { x: deltaX, y: deltaY }, boundary)
+      const newOffset = calculateClampedOffset(
+        { x: canvasOffset.x + deltaX, y: canvasOffset.y + deltaY },
+        zoomScale,
+        canvasSize.width,
+        canvasSize.height,
+        window.innerWidth,
+        window.innerHeight
+      )
       setCanvasOffset(newOffset)
       
       dragStartRef.current = { x: e.clientX, y: e.clientY }
@@ -97,8 +118,17 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const currentX = e.clientX - canvasOffset.x
-    const currentY = e.clientY - canvasOffset.y
+    const windowWidth = window.innerWidth
+    const windowHeight = window.innerHeight
+    const padding = Math.max(windowWidth, windowHeight) * CANVAS_CONFIG.CANVAS_SCALE_MULTIPLIER
+    const offsetX = padding / 2
+    const offsetY = padding / 2
+
+    const canvasLeft = windowWidth / 2 - canvasSize.width / 2 + canvasOffset.x
+    const canvasTop = windowHeight / 2 - canvasSize.height / 2 + canvasOffset.y
+
+    const currentX = (e.clientX - canvasLeft) / zoomScale - offsetX
+    const currentY = (e.clientY - canvasTop) / zoomScale - offsetY
 
     ctx.beginPath()
     ctx.moveTo(lastPositionRef.current.x, lastPositionRef.current.y)
@@ -148,7 +178,40 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
   }
 
   const handleContextMenu = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (e.button === 1) {
+      e.preventDefault()
+    }
+  }
+
+  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault()
+    
+    const screenWidth = window.innerWidth
+    const screenHeight = window.innerHeight
+    const mouseX = e.clientX
+    const mouseY = e.clientY
+    
+    const delta = e.deltaY > 0 ? -CANVAS_CONFIG.ZOOM_STEP : CANVAS_CONFIG.ZOOM_STEP
+    const newScale = clampZoomScale(zoomScale, delta, CANVAS_CONFIG.MAX_ZOOM_SCALE, CANVAS_CONFIG.MIN_ZOOM_SCALE, boundary)
+    
+    const scaleRatio = newScale / zoomScale
+    
+    const newOffset = {
+      x: (mouseX - screenWidth / 2) * (1 - scaleRatio) + canvasOffset.x * scaleRatio,
+      y: (mouseY - screenHeight / 2) * (1 - scaleRatio) + canvasOffset.y * scaleRatio
+    }
+    
+    const clampedOffset = calculateClampedOffset(
+      newOffset,
+      newScale,
+      canvasSize.width,
+      canvasSize.height,
+      screenWidth,
+      screenHeight
+    )
+    
+    setZoomScale(newScale)
+    setCanvasOffset(clampedOffset)
   }
 
   return (
@@ -160,7 +223,7 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
           height: `${gridSize.height}px`,
           left: '50%',
           top: '50%',
-          transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px))`
+          transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px)) scale(${zoomScale})`
         }}
       />
       <canvas 
@@ -169,7 +232,7 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
         style={{
           left: '50%',
           top: '50%',
-          transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px))`
+          transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px)) scale(${zoomScale})`
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={(e) => {
@@ -182,15 +245,16 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
           handleCanvasMouseLeave()
         }}
         onContextMenu={handleContextMenu}
+        onWheel={handleWheel}
       />
       {cursorPosition && selectedTool === 'eraser' && (
         <div 
           className="eraser-cursor"
           style={{
-            left: `${cursorPosition.x - eraserSize / 2}px`,
-            top: `${cursorPosition.y - eraserSize / 2}px`,
-            width: `${eraserSize}px`,
-            height: `${eraserSize}px`
+            left: `${cursorPosition.x - (eraserSize * zoomScale) / 2}px`,
+            top: `${cursorPosition.y - (eraserSize * zoomScale) / 2}px`,
+            width: `${eraserSize * zoomScale}px`,
+            height: `${eraserSize * zoomScale}px`
           }}
         />
       )}
