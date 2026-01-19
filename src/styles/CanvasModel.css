@@ -16,10 +16,16 @@
   justify-content: center;
   color: rgba(255, 255, 255, 0.8);
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .model-display:hover {
   color: rgba(255, 255, 255, 1);
+}
+
+.model-display.active {
+  color: rgba(100, 200, 255, 1);
+  box-shadow: 0 0 8px rgba(100, 200, 255, 0.3);
 }
 
 .model-menu {

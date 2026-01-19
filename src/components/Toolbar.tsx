@@ -7,7 +7,8 @@ import {
   FaMinus, 
   FaArrowRight, 
   FaDrawPolygon, 
-  FaFont 
+  FaFont,
+  FaEraser
 } from 'react-icons/fa6'
 import { useToolStore } from '../store'
 import '../styles/Toolbar.css'
@@ -24,7 +25,8 @@ function Toolbar() {
     { id: 'line', icon: FaMinus, label: '直线' },
     { id: 'arrow', icon: FaArrowRight, label: '箭头' },
     { id: 'polygon', icon: FaDrawPolygon, label: '多边形' },
-    { id: 'text', icon: FaFont, label: '文本' }
+    { id: 'text', icon: FaFont, label: '文本' },
+    { id: 'eraser', icon: FaEraser, label: '橡皮擦' }
   ]
 
   return (

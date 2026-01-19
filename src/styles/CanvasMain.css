@@ -1,3 +1,8 @@
+:root {
+  --eraser-cursor-color: rgba(255, 255, 255, 0.9);
+  --eraser-cursor-shadow: rgba(255, 255, 255, 0.3);
+}
+
 .drawing-canvas {
   position: absolute;
   top: 0;
@@ -6,4 +11,17 @@
   height: 100%;
   z-index: 15;
   cursor: crosshair;
+}
+
+.drawing-canvas.eraser-mode {
+  cursor: none;
+}
+
+.eraser-cursor {
+  position: fixed;
+  pointer-events: none;
+  border: 2px solid var(--eraser-cursor-color);
+  border-radius: 50%;
+  z-index: 1000;
+  box-shadow: 0 0 4px var(--eraser-cursor-shadow);
 }

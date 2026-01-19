@@ -4,6 +4,7 @@ import CanvasMenu from './components/CanvasMenu'
 import Toolbar from './components/Toolbar'
 import CanvasMain from './components/CanvasMain'
 import CanvasModel from './components/CanvasModel'
+import Eraser from './components/Eraser'
 import { useAppStore, useToolStore, useCanvasStore } from './store'
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
   const selectedTool = useToolStore((state) => state.selectedTool)
   const currentColor = useCanvasStore((state) => state.currentColor)
   const currentLineWidth = useCanvasStore((state) => state.currentLineWidth)
+  const eraserSize = useCanvasStore((state) => state.eraserSize)
 
   const handleDoubleClick = () => {
     setIsDrawingMode(true)
@@ -30,10 +32,12 @@ function App() {
             selectedTool={selectedTool} 
             currentColor={currentColor}
             currentLineWidth={currentLineWidth}
+            eraserSize={eraserSize}
           />
           <CanvasMenu onBack={handleExitDrawingMode} />
           <Toolbar />
           <CanvasModel />
+          <Eraser />
         </>
       )}
     </div>

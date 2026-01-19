@@ -30,6 +30,7 @@ function CanvasModel() {
   const currentColor = useCanvasStore((state) => state.currentColor)
   const [pickerColor, setPickerColor] = useState(currentColor)
   const selectedTool = useToolStore((state) => state.selectedTool)
+  const setSelectedTool = useToolStore((state) => state.setSelectedTool)
   const currentLineWidth = useCanvasStore((state) => state.currentLineWidth)
   const setColor = useCanvasStore((state) => state.setColor)
   const setLineWidth = useCanvasStore((state) => state.setLineWidth)
@@ -45,6 +46,12 @@ function CanvasModel() {
   ]
 
   const selectedToolIcon = tools.find(tool => tool.id === selectedTool)?.icon || FaPencil
+
+  const handleModelDisplayClick = () => {
+    if (selectedTool === 'eraser') {
+      setSelectedTool('pencil')
+    }
+  }
 
   const colors = [
     '#ffffff',
@@ -88,7 +95,10 @@ function CanvasModel() {
       onMouseEnter={() => setIsMenuOpen(true)}
       onMouseLeave={() => setIsMenuOpen(false)}
     >
-      <div className="model-display">
+      <div 
+        className={`model-display ${selectedTool !== 'eraser' ? 'active' : ''}`}
+        onClick={handleModelDisplayClick}
+      >
         {React.createElement(selectedToolIcon, { size: 24 })}
       </div>
       <div className={`model-menu ${isMenuOpen ? 'open' : ''}`}>
