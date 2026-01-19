@@ -34,7 +34,7 @@ function App() {
             currentLineWidth={currentLineWidth}
             eraserSize={eraserSize}
           />
-          <CanvasMenu onBack={handleExitDrawingMode} />
+          <CanvasMenu onBack={handleExitDrawingMode} onZoomChange={(scale) => console.log('Zoom changed to:', scale)} />
           <Toolbar />
           <CanvasModel />
           <Eraser />

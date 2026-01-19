@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import '../styles/CanvasMenu.css'
 import { LuSlack } from "react-icons/lu";
-function CanvasIndex({ onBack }: { onBack: () => void }) {
+import ZoomControls from './ZoomControls';
+
+function CanvasIndex({ onBack, onZoomChange }: { onBack: () => void, onZoomChange?: (scale: number) => void }) {
   const [showBackButton, setShowBackButton] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -25,6 +27,7 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
             <LuSlack size={30} />
           </div>
           <div className={`menu-dropdown ${isMenuOpen ? 'open' : ''}`}>
+            <ZoomControls onZoomChange={onZoomChange} />
             <button className="back-button" onClick={onBack}>
               ← 退出
             </button>

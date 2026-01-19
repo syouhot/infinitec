@@ -184,34 +184,7 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
     }
   }
 
-  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault()
-    
-    const screenWidth = window.innerWidth
-    const screenHeight = window.innerHeight
-    const mouseX = e.clientX
-    const mouseY = e.clientY
-    
-    const zoomResult = handleZoom(
-      { scale: zoomScale, offset: canvasOffset },
-      e.deltaY,
-      mouseX,
-      mouseY,
-      screenWidth,
-      screenHeight,
-      canvasSize.width,
-      canvasSize.height,
-      {
-        maxScale: CANVAS_CONFIG.MAX_ZOOM_SCALE,
-        minScale: CANVAS_CONFIG.MIN_ZOOM_SCALE,
-        zoomStep: CANVAS_CONFIG.ZOOM_STEP
-      },
-      boundary
-    )
-    
-    setZoomScale(zoomResult.newScale)
-    setCanvasOffset(zoomResult.newOffset)
-  }
+
 
   return (
     <>
@@ -244,7 +217,6 @@ function CanvasMain({ selectedTool, currentColor, currentLineWidth, eraserSize }
           handleCanvasMouseLeave()
         }}
         onContextMenu={handleContextMenu}
-        onWheel={handleWheel}
       />
       {cursorPosition && selectedTool === 'eraser' && (
         <div 
