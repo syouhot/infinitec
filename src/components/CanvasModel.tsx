@@ -18,8 +18,18 @@ import '../styles/CanvasModel.css'
 
 function CanvasModel() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const selectedTool = useToolStore((state) => state.selectedTool)
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [selectedBottomIndex, setSelectedBottomIndex] = useState<number | null>(null)
+  const [bottomColors, setBottomColors] = useState([
+    '#ff00ff',
+    '#00ffff',
+    '#ffa500',
+    '#800080',
+    '#808080'
+  ])
   const currentColor = useCanvasStore((state) => state.currentColor)
+  const [pickerColor, setPickerColor] = useState(currentColor)
+  const selectedTool = useToolStore((state) => state.selectedTool)
   const currentLineWidth = useCanvasStore((state) => state.currentLineWidth)
   const setColor = useCanvasStore((state) => state.setColor)
   const setLineWidth = useCanvasStore((state) => state.setLineWidth)
@@ -41,13 +51,34 @@ function CanvasModel() {
     '#ff0000',
     '#00ff00',
     '#0000ff',
-    '#ffff00',
-    '#ff00ff',
-    '#00ffff',
-    '#ffa500',
-    '#800080',
-    '#808080'
+    '#ffff00'
   ]
+
+  const topColors = colors
+
+  const handleTopColorClick = (color: string) => {
+    setColor(color)
+    setShowColorPicker(false)
+    setSelectedBottomIndex(null)
+  }
+
+  const handleBottomColorClick = (color: string, index: number) => {
+    setColor(color)
+    setPickerColor(color)
+    setShowColorPicker(true)
+    setSelectedBottomIndex(index)
+  }
+
+  const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value
+    setPickerColor(newColor)
+    setColor(newColor)
+    if (selectedBottomIndex !== null) {
+      const newBottomColors = [...bottomColors]
+      newBottomColors[selectedBottomIndex] = newColor
+      setBottomColors(newBottomColors)
+    }
+  }
 
   const lineSizes = [1, 2, 3, 4, 5, 6, 8, 10]
 
@@ -66,16 +97,36 @@ function CanvasModel() {
             <FaPalette size={16} />
             <span>颜色</span>
           </div>
-          <div className="color-grid">
-            {colors.map(color => (
+          <div className="color-grid color-grid-top">
+            {topColors.map(color => (
               <button
                 key={color}
-                className={`color-button ${currentColor === color ? 'active' : ''}`}
-                onClick={() => setColor(color)}
+                className={`color-button color-button-circle ${currentColor === color ? 'active' : ''}`}
+                onClick={() => handleTopColorClick(color)}
                 style={{ backgroundColor: color }}
               />
             ))}
           </div>
+          <div className="color-grid color-grid-bottom">
+            {bottomColors.map((color, index) => (
+              <button
+                key={index}
+                className={`color-button color-button-square ${currentColor === color ? 'active' : ''}`}
+                onClick={() => handleBottomColorClick(color, index)}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
+          {showColorPicker && (
+            <div className="color-picker-container">
+              <input
+                type="color"
+                value={pickerColor}
+                onChange={handlePickerChange}
+                className="color-picker"
+              />
+            </div>
+          )}
         </div>
         <div className="menu-section">
           <div className="menu-header">
