@@ -21,6 +21,7 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
       setShowLoginModal(true)
     }, 300)
   }
+
   const handleSwitchToRegister = () => {
     setShowLoginModal(false)
     setTimeout(() => {
@@ -34,6 +35,14 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
 
   const handleCloseLoginModal = () => {
     setShowLoginModal(false)
+  }
+
+  const handleMultiplayerClick = () => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true)
+    } else {
+      onDoubleClick()
+    }
   }
 
   useEffect(() => {
@@ -148,7 +157,7 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
           </p>
           <div className="divider"></div>
         </div>
-        <p className="subtitle animate-fade-in" onDoubleClick={onDoubleClick}>
+        <p className="subtitle animate-fade-in" onClick={handleMultiplayerClick}>
           多人绘画
         </p>
       </div>
