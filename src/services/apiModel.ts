@@ -1,89 +1,89 @@
 export interface RegisterData {
-  name: string
-  phone: string
-  password: string
+    name: string
+    phone: string
+    password: string
 }
 
 export interface LoginData {
-  phone: string
-  password: string
+    phone: string
+    password: string
 }
 
 export interface RegisterResponse {
-  success: boolean
-  message: string
-  token: string
-  user: {
-    id: string
-    name: string
-    phone: string
-  }
+    success: boolean
+    message: string
+    token: string
+    user: {
+        id: string
+        name: string
+        phone: string
+    }
 }
 
 export interface LoginResponse {
-  success: boolean
-  message: string
-  token: string
-  user: {
-    id: string
-    name: string
-    phone: string
-  }
+    success: boolean
+    message: string
+    token: string
+    user: {
+        id: string
+        name: string
+        phone: string
+    }
 }
 
 export interface CheckPhoneResponse {
-  exists: boolean
+    exists: boolean
 }
 
 export interface CreateRoomData {
-  password?: string
-  maxUsers?: number
+    password?: string
+    maxUsers?: number
 }
 
 export interface CreateRoomResponse {
-  success: boolean
-  message: string
-  room: {
-    id: string
-    roomId: string
-    name: string
-    maxUsers: number
-    status: string
-    createdAt: string
-  }
+    success: boolean
+    message: string
+    room: {
+        id: string
+        roomId: string
+        name: string
+        maxUsers: number
+        status: string
+        createdAt: string
+    }
 }
 
 export interface LeaveRoomData {
-  roomId: string
+    roomId: string
 }
 
 export interface LeaveRoomResponse {
-  success: boolean
-  message: string
+    success: boolean
+    message: string
 }
 
 export interface JoinRoomData {
-  roomId: string
-  password?: string
+    roomId: string
+    password?: string
 }
 
 export interface JoinRoomResponse {
-  success: boolean
-  message: string
-  room: {
-    id: string
-    roomId: string
-    name: string
-    maxUsers: number
-    status: string
-  }
+    success: boolean
+    message: string
+    room: {
+        id: string
+        roomId: string
+        name: string
+        maxUsers: number
+        status: string
+    }
 }
 
 export interface DeleteRoomData {
-  roomId: string
+    roomId: string | null
 }
 
 export interface DeleteRoomResponse {
-  success: boolean
-  message: string
+    success: boolean
+    message: string
 }
