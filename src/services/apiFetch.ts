@@ -17,11 +17,14 @@ export async function apiFetch<T = any>(
     ...restOptions
   } = options
 
+  const token = localStorage.getItem('token')
+
   const fetchOptions: RequestInit = {
     method,
     headers: {
       ...apiConfig.headers,
       ...headers,
+      ...(token ? { token } : {}),
     },
   }
 

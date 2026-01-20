@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import '../styles/Home.css'
 import RegisterModal from './RegisterModal'
 import LoginModal from './LoginModal'
+import RoomModal from './RoomModal'
 import { useAuth } from '../contexts/AuthContext'
+import { useAppStore } from "../store"
 
 interface HomeProps {
   onDoubleClick: () => void
@@ -13,7 +15,9 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showRoomModal, setShowRoomModal] = useState(false)
   const { user, isAuthenticated, logout } = useAuth()
+  const { setRoomId, setIsRoomOwner } = useAppStore()
 
   const handleSwitchToLogin = () => {
     setShowRegisterModal(false)
@@ -41,8 +45,24 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
     if (!isAuthenticated) {
       setShowLoginModal(true)
     } else {
-      onDoubleClick()
+      setShowRoomModal(true)
     }
+  }
+
+  const handleCreateRoom = (password: string, roomId: string) => {
+    console.log('创建房间:', { password, roomId })
+    setShowRoomModal(false)
+    setRoomId(roomId)
+    setIsRoomOwner(true)
+    onDoubleClick()
+  }
+
+  const handleJoinRoom = (roomId: string, password: string) => {
+    console.log('加入房间:', { roomId, password })
+    setShowRoomModal(false)
+    setRoomId(roomId)
+    setIsRoomOwner(false)
+    onDoubleClick()
   }
 
   useEffect(() => {
@@ -171,6 +191,12 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
         isOpen={showLoginModal} 
         onClose={handleCloseLoginModal}
         onSwitchToRegister={handleSwitchToRegister}
+      />
+      <RoomModal
+        isOpen={showRoomModal}
+        onClose={() => setShowRoomModal(false)}
+        onCreateRoom={handleCreateRoom}
+        onJoinRoom={handleJoinRoom}
       />
     </>
   )

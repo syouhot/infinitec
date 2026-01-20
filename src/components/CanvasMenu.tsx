@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react'
-import '../styles/CanvasMenu.css'
+import { message } from 'antd'
 import { LuSlack } from "react-icons/lu";
+import '../styles/CanvasMenu.css'
+import '../styles/ConfirmModal.css'
 import ZoomControls from './ZoomControls';
 import ThemeControls from './ThemeControls';
-
+import { useAppStore } from '../store'
+import { leaveRoom, deleteRoom } from '../services/roomService'
+import { IoWarningOutline } from "react-icons/io5";
 function CanvasIndex({ onBack, onZoomChange }: { onBack: () => void, onZoomChange?: (scale: number) => void }) {
   const [showBackButton, setShowBackButton] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [isClosing, setIsClosing] = useState(false)
+  const { roomId, setRoomId, isRoomOwner, setIsRoomOwner } = useAppStore()
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -15,6 +22,51 @@ function CanvasIndex({ onBack, onZoomChange }: { onBack: () => void, onZoomChang
 
     return () => clearTimeout(timer)
   }, [])
+
+  const handleExitRoom = async () => {
+    if (!roomId) {
+      onBack()
+      return
+    }
+
+    if (isRoomOwner) {
+      setShowConfirmModal(true)
+      return
+    }
+
+    try {
+      await leaveRoom({ roomId })
+      message.success('已退出房间')
+      setRoomId(null)
+      onBack()
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '退出房间失败')
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    try {
+      await deleteRoom({ roomId })
+      message.success('房间已解散')
+      handleCloseConfirmModal()
+      setRoomId(null)
+      onBack()
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '删除房间失败')
+    }
+  }
+
+  const handleCancelDelete = () => {
+    handleCloseConfirmModal()
+  }
+
+  const handleCloseConfirmModal = () => {
+    setIsClosing(true)
+    setTimeout(() => {
+      setShowConfirmModal(false)
+      setIsClosing(false)
+    }, 300)
+  }
 
   return (
     <>
@@ -28,11 +80,37 @@ function CanvasIndex({ onBack, onZoomChange }: { onBack: () => void, onZoomChang
             <LuSlack size={30} />
           </div>
           <div className={`menu-dropdown ${isMenuOpen ? 'open' : ''}`}>
+            {roomId && (
+              <div className="room-info">
+                <span className="room-label">房间ID</span>
+                <span className="room-id">{roomId}</span>
+              </div>
+            )}
             {/* <ZoomControls onZoomChange={onZoomChange} /> */}
             <ThemeControls style={{ minWidth: '240px' }} />
-            <button className="back-button" onClick={onBack}>
+            <button className="back-button" onClick={handleExitRoom}>
               ← 退出
             </button>
+          </div>
+        </div>
+      )}
+      
+      {showConfirmModal && (
+        <div className={`confirm-modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleCancelDelete}>
+          <div className={`confirm-modal ${isClosing ? 'closing' : ''}`} onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-modal-icon">
+              <IoWarningOutline />
+            </div>
+            <h2 className="confirm-modal-title">确认解散房间</h2>
+            <p className="confirm-modal-message">您是房主，退出后房间将自动解散，是否继续？</p>
+            <div className="confirm-modal-buttons">
+              <button className="confirm-modal-button cancel" onClick={handleCancelDelete}>
+                取消
+              </button>
+              <button className="confirm-modal-button confirm" onClick={handleConfirmDelete}>
+                确认解散
+              </button>
+            </div>
           </div>
         </div>
       )}

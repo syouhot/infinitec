@@ -12,6 +12,8 @@ import { AuthProvider } from './contexts/AuthContext'
 function App() {
   const isDrawingMode = useAppStore((state) => state.isDrawingMode)
   const setIsDrawingMode = useAppStore((state) => state.setIsDrawingMode)
+  const setRoomId = useAppStore((state) => state.setRoomId)
+  const setIsRoomOwner = useAppStore((state) => state.setIsRoomOwner)
   const selectedTool = useToolStore((state) => state.selectedTool)
   const currentColor = useCanvasStore((state) => state.currentColor)
   const currentLineWidth = useCanvasStore((state) => state.currentLineWidth)
@@ -23,6 +25,8 @@ function App() {
 
   const handleExitDrawingMode = () => {
     setIsDrawingMode(false)
+    setRoomId(null)
+    setIsRoomOwner(false)
   }
 
   return (
