@@ -1,5 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import '../styles/Home.css'
+import RegisterModal from './RegisterModal'
+import LoginModal from './LoginModal'
+import { useAuth } from '../contexts/AuthContext'
 
 interface HomeProps {
   onDoubleClick: () => void
@@ -8,6 +11,30 @@ interface HomeProps {
 
 function Home({ onDoubleClick, isHidden = false }: HomeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [showRegisterModal, setShowRegisterModal] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const { user, isAuthenticated, logout } = useAuth()
+
+  const handleSwitchToLogin = () => {
+    setShowRegisterModal(false)
+    setTimeout(() => {
+      setShowLoginModal(true)
+    }, 300)
+  }
+  const handleSwitchToRegister = () => {
+    setShowLoginModal(false)
+    setTimeout(() => {
+      setShowRegisterModal(true)
+    }, 300)
+  }
+
+  const handleCloseRegisterModal = () => {
+    setShowRegisterModal(false)
+  }
+
+  const handleCloseLoginModal = () => {
+    setShowLoginModal(false)
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -73,18 +100,43 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
   }, [])
 
   useEffect(() => {
-    if (isHidden) return
+    if (isHidden || showRegisterModal || showLoginModal) return
 
     window.addEventListener('dblclick', onDoubleClick)
     
     return () => {
       window.removeEventListener('dblclick', onDoubleClick)
     }
-  }, [onDoubleClick, isHidden])
+  }, [onDoubleClick, isHidden, showRegisterModal, showLoginModal])
 
   return (
     <>
       <canvas ref={canvasRef} className="starfield" />
+      {!isHidden && (
+        isAuthenticated ? (
+          <div className="user-info">
+            <span className="user-name">{user?.name}</span>
+            <button className="logout-button" onClick={logout}>
+              退出
+            </button>
+          </div>
+        ) : (
+          <div className="auth-buttons">
+            <span 
+              className="auth-link register-link"
+              onClick={() => setShowRegisterModal(true)}
+            >
+              注册
+            </span>
+            <span 
+              className="auth-link login-link"
+              onClick={() => setShowLoginModal(true)}
+            >
+              登录
+            </span>
+          </div>
+        )
+      )}
       <div className={`content ${isHidden ? 'hidden' : ''}`}>
         <h1 className="title animate-fade-in">
           infinitec
@@ -100,6 +152,17 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
           多人绘画
         </p>
       </div>
+
+      <RegisterModal 
+        isOpen={showRegisterModal} 
+        onClose={handleCloseRegisterModal}
+        onSwitchToLogin={handleSwitchToLogin}
+      />
+      <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={handleCloseLoginModal}
+        onSwitchToRegister={handleSwitchToRegister}
+      />
     </>
   )
 }

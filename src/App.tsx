@@ -6,6 +6,8 @@ import CanvasMain from './components/CanvasMain'
 import CanvasModel from './components/CanvasModel'
 import Eraser from './components/Eraser'
 import { useAppStore, useToolStore, useCanvasStore } from './store'
+import { DatabaseProvider } from './contexts/DatabaseContext'
+import { AuthProvider } from './contexts/AuthContext'
 
 function App() {
   const isDrawingMode = useAppStore((state) => state.isDrawingMode)
@@ -24,23 +26,27 @@ function App() {
   }
 
   return (
-    <div className={`app ${isDrawingMode ? 'drawing-mode' : ''}`}>
-      <Home onDoubleClick={handleDoubleClick} isHidden={isDrawingMode} />
-      {isDrawingMode && (
-        <>
-          <CanvasMain 
-            selectedTool={selectedTool} 
-            currentColor={currentColor}
-            currentLineWidth={currentLineWidth}
-            eraserSize={eraserSize}
-          />
-          <CanvasMenu onBack={handleExitDrawingMode} onZoomChange={(scale) => console.log('Zoom changed to:', scale)} />
-          <Toolbar />
-          <CanvasModel />
-          <Eraser />
-        </>
-      )}
-    </div>
+    <AuthProvider>
+      <DatabaseProvider>
+        <div className={`app ${isDrawingMode ? 'drawing-mode' : ''}`}>
+          <Home onDoubleClick={handleDoubleClick} isHidden={isDrawingMode} />
+          {isDrawingMode && (
+            <>
+              <CanvasMain 
+                selectedTool={selectedTool} 
+                currentColor={currentColor}
+                currentLineWidth={currentLineWidth}
+                eraserSize={eraserSize}
+              />
+              <CanvasMenu onBack={handleExitDrawingMode} onZoomChange={(scale) => console.log('Zoom changed to:', scale)} />
+              <Toolbar />
+              <CanvasModel />
+              <Eraser />
+            </>
+          )}
+        </div>
+      </DatabaseProvider>
+    </AuthProvider>
   )
 }
 
