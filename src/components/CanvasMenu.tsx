@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
 import { message } from 'antd'
 import { LuSlack } from "react-icons/lu";
+import { IoWarningOutline } from "react-icons/io5";
 import '../styles/CanvasMenu.css'
 import '../styles/ConfirmModal.css'
 import ZoomControls from './ZoomControls';
 import ThemeControls from './ThemeControls';
 import { useAppStore } from '../store'
 import { leaveRoom, deleteRoom } from '../services/roomService'
-import { IoWarningOutline } from "react-icons/io5";
+import { websocketService } from '../services/websocketService'
+import RoomDeletedModal from './RoomDeletedModal'
 function CanvasIndex({ onBack, onZoomChange }: { onBack: () => void, onZoomChange?: (scale: number) => void }) {
   const [showBackButton, setShowBackButton] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showRoomDeletedModal, setShowRoomDeletedModal] = useState(false)
   const [isClosing, setIsClosing] = useState(false)
   const { roomId, setRoomId, isRoomOwner, setIsRoomOwner } = useAppStore()
 
@@ -22,6 +25,22 @@ function CanvasIndex({ onBack, onZoomChange }: { onBack: () => void, onZoomChang
 
     return () => clearTimeout(timer)
   }, [])
+
+  useEffect(() => {
+    websocketService.setRoomDeletedCallback((deletedRoomId) => {
+      if (deletedRoomId === roomId) {
+        setShowRoomDeletedModal(true)
+      }
+    })
+  }, [roomId])
+
+  const handleRoomDeletedConfirm = () => {
+    setShowRoomDeletedModal(false)
+    websocketService.disconnect()
+    setRoomId(null)
+    setIsRoomOwner(false)
+    onBack()
+  }
 
   const handleExitRoom = async () => {
     if (!roomId) {
@@ -35,9 +54,11 @@ function CanvasIndex({ onBack, onZoomChange }: { onBack: () => void, onZoomChang
     }
 
     try {
+      websocketService.disconnect()
       await leaveRoom({ roomId })
       message.success('已退出房间')
       setRoomId(null)
+      setIsRoomOwner(false)
       onBack()
     } catch (error) {
       message.error(error instanceof Error ? error.message : '退出房间失败')
@@ -46,10 +67,12 @@ function CanvasIndex({ onBack, onZoomChange }: { onBack: () => void, onZoomChang
 
   const handleConfirmDelete = async () => {
     try {
+      websocketService.disconnect()
       await deleteRoom({ roomId })
       message.success('房间已解散')
       handleCloseConfirmModal()
       setRoomId(null)
+      setIsRoomOwner(false)
       onBack()
     } catch (error) {
       message.error(error instanceof Error ? error.message : '删除房间失败')
@@ -114,6 +137,11 @@ function CanvasIndex({ onBack, onZoomChange }: { onBack: () => void, onZoomChang
           </div>
         </div>
       )}
+      
+      <RoomDeletedModal 
+        isOpen={showRoomDeletedModal} 
+        onConfirm={handleRoomDeletedConfirm}
+      />
     </>
   )
 }

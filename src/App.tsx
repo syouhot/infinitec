@@ -8,6 +8,7 @@ import Eraser from './components/Eraser'
 import { useAppStore, useToolStore, useCanvasStore } from './store'
 import { DatabaseProvider } from './contexts/DatabaseContext'
 import { AuthProvider } from './contexts/AuthContext'
+import { websocketService } from './services/websocketService'
 
 function App() {
   const isDrawingMode = useAppStore((state) => state.isDrawingMode)
@@ -27,6 +28,7 @@ function App() {
     setIsDrawingMode(false)
     setRoomId(null)
     setIsRoomOwner(false)
+    websocketService.disconnect()
   }
 
   return (

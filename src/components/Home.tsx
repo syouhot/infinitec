@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { message } from 'antd'
 import '../styles/Home.css'
 import RegisterModal from './RegisterModal'
 import LoginModal from './LoginModal'
 import RoomModal from './RoomModal'
 import { useAuth } from '../contexts/AuthContext'
 import { useAppStore } from "../store"
+import { websocketService } from '../services/websocketService'
 
 interface HomeProps {
   onDoubleClick: () => void
@@ -49,19 +51,39 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
     }
   }
 
-  const handleCreateRoom = (password: string, roomId: string) => {
+  const handleCreateRoom = async (password: string, roomId: string) => {
     console.log('创建房间:', { password, roomId })
     setShowRoomModal(false)
     setRoomId(roomId)
     setIsRoomOwner(true)
+    
+    if (user) {
+      try {
+        await websocketService.connect(user.id, roomId)
+        console.log('WebSocket连接已建立')
+      } catch (error) {
+        console.error('WebSocket连接失败:', error)
+      }
+    }
+    
     onDoubleClick()
   }
 
-  const handleJoinRoom = (roomId: string, password: string) => {
+  const handleJoinRoom = async (roomId: string, password: string) => {
     console.log('加入房间:', { roomId, password })
     setShowRoomModal(false)
     setRoomId(roomId)
     setIsRoomOwner(false)
+    
+    if (user) {
+      try {
+        await websocketService.connect(user.id, roomId)
+        console.log('WebSocket连接已建立')
+      } catch (error) {
+        console.error('WebSocket连接失败:', error)
+      }
+    }
+    
     onDoubleClick()
   }
 
