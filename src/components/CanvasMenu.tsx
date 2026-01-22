@@ -4,13 +4,12 @@ import { LuSlack } from "react-icons/lu";
 import { IoWarningOutline } from "react-icons/io5";
 import '../styles/CanvasMenu.css'
 import '../styles/ConfirmModal.css'
-import ZoomControls from './ZoomControls';
 import ThemeControls from './ThemeControls';
 import { useAppStore } from '../store'
 import { leaveRoom, deleteRoom } from '../services/roomService'
 import { websocketService } from '../services/websocketService'
 import RoomDeletedModal from './RoomDeletedModal'
-function CanvasIndex({ onBack, onZoomChange }: { onBack: () => void, onZoomChange?: (scale: number) => void }) {
+function CanvasIndex({ onBack }: { onBack: () => void }) {
   const [showBackButton, setShowBackButton] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -109,7 +108,6 @@ function CanvasIndex({ onBack, onZoomChange }: { onBack: () => void, onZoomChang
                 <span className="room-id">{roomId}</span>
               </div>
             )}
-            {/* <ZoomControls onZoomChange={onZoomChange} /> */}
             <ThemeControls style={{ minWidth: '240px' }} />
             <button className="back-button" onClick={handleExitRoom}>
               ← 退出

@@ -36,12 +36,12 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     const centerY = windowHeight / 2;
 
     // 获取当前可视区域中心对应的画布坐标
-    const currentCenterCanvasX = (windowWidth / 2 - (windowWidth / 2 - canvasSize.width / 2 + canvasOffset.x)) / zoomScale;
-    const currentCenterCanvasY = (windowHeight / 2 - (windowHeight / 2 - canvasSize.height / 2 + canvasOffset.y)) / zoomScale;
+    const currentCenterCanvasX = canvasSize.width / 2 - canvasOffset.x / zoomScale;
+    const currentCenterCanvasY = canvasSize.height / 2 - canvasOffset.y / zoomScale;
 
     // 计算新的偏移量，以确保缩放后中心点不变
-    const newOffsetX = centerX - currentCenterCanvasX * scale - (windowWidth / 2 - canvasSize.width / 2);
-    const newOffsetY = centerY - currentCenterCanvasY * scale - (windowHeight / 2 - canvasSize.height / 2);
+    const newOffsetX = -(currentCenterCanvasX - canvasSize.width / 2) * scale;
+    const newOffsetY = -(currentCenterCanvasY - canvasSize.height / 2) * scale;
 
     // 应用边界限制
     const clampedOffset = calculateClampedOffset(
@@ -55,12 +55,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     setZoomScale(scale);
     setCanvasOffset(clampedOffset);
-
-    // 如果提供了回调，通知偏移量变化
-    if (onZoomChange) {
-      onZoomChange(scale, clampedOffset);
-    }
-  }, [zoomScale, canvasOffset, canvasSize, onZoomChange]);
+  }, [zoomScale, canvasOffset, canvasSize]);
 
   // 使用 useImperativeHandle 暴露方法给父组件
   useImperativeHandle(ref, () => ({
@@ -110,12 +105,15 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   // 以指定点为中心进行缩放的函数
   const zoomToScaleWithPoint = useCallback((newScale: number, centerX: number, centerY: number) => {
     // 计算当前鼠标位置对应的画布坐标
-    const currentCanvasX = (centerX - (window.innerWidth / 2 - canvasSize.width / 2 + canvasOffset.x)) / zoomScale;
-    const currentCanvasY = (centerY - (window.innerHeight / 2 - canvasSize.height / 2 + canvasOffset.y)) / zoomScale;
+    const screenCenterX = window.innerWidth / 2 + canvasOffset.x;
+    const screenCenterY = window.innerHeight / 2 + canvasOffset.y;
+    
+    const currentCanvasX = canvasSize.width / 2 + (centerX - screenCenterX) / zoomScale;
+    const currentCanvasY = canvasSize.height / 2 + (centerY - screenCenterY) / zoomScale;
 
     // 计算新的偏移量，以确保缩放后鼠标位置对应的画布坐标不变
-    const newOffsetX = centerX - currentCanvasX * newScale - (window.innerWidth / 2 - canvasSize.width / 2);
-    const newOffsetY = centerY - currentCanvasY * newScale - (window.innerHeight / 2 - canvasSize.height / 2);
+    const newOffsetX = centerX - window.innerWidth / 2 - (currentCanvasX - canvasSize.width / 2) * newScale;
+    const newOffsetY = centerY - window.innerHeight / 2 - (currentCanvasY - canvasSize.height / 2) * newScale;
 
     // 应用边界限制
     const windowWidth = window.innerWidth;
@@ -131,12 +129,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     setZoomScale(newScale);
     setCanvasOffset(clampedOffset);
-
-    // 如果提供了回调，通知偏移量变化
-    if (props.onZoomChange) {
-      props.onZoomChange(newScale, clampedOffset);
-    }
-  }, [canvasOffset, canvasSize, zoomScale, props.onZoomChange]);
+  }, [canvasOffset, canvasSize, zoomScale]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 1) {
@@ -152,16 +145,13 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     const windowWidth = window.innerWidth
     const windowHeight = window.innerHeight
-    const padding = Math.max(windowWidth, windowHeight) * CANVAS_CONFIG.CANVAS_SCALE_MULTIPLIER
-    const offsetX = padding / 2
-    const offsetY = padding / 2
 
-    const canvasLeft = windowWidth / 2 - canvasSize.width / 2 + canvasOffset.x
-    const canvasTop = windowHeight / 2 - canvasSize.height / 2 + canvasOffset.y
+    const screenCenterX = windowWidth / 2 + canvasOffset.x
+    const screenCenterY = windowHeight / 2 + canvasOffset.y
 
     lastPositionRef.current = {
-      x: (e.clientX - canvasLeft) / zoomScale - offsetX,
-      y: (e.clientY - canvasTop) / zoomScale - offsetY
+      x: windowWidth / 2 + (e.clientX - screenCenterX) / zoomScale,
+      y: windowHeight / 2 + (e.clientY - screenCenterY) / zoomScale
     }
   }
 
@@ -195,15 +185,12 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     const windowWidth = window.innerWidth
     const windowHeight = window.innerHeight
-    const padding = Math.max(windowWidth, windowHeight) * CANVAS_CONFIG.CANVAS_SCALE_MULTIPLIER
-    const offsetX = padding / 2
-    const offsetY = padding / 2
 
-    const canvasLeft = windowWidth / 2 - canvasSize.width / 2 + canvasOffset.x
-    const canvasTop = windowHeight / 2 - canvasSize.height / 2 + canvasOffset.y
+    const screenCenterX = windowWidth / 2 + canvasOffset.x
+    const screenCenterY = windowHeight / 2 + canvasOffset.y
 
-    const currentX = (e.clientX - canvasLeft) / zoomScale - offsetX
-    const currentY = (e.clientY - canvasTop) / zoomScale - offsetY
+    const currentX = windowWidth / 2 + (e.clientX - screenCenterX) / zoomScale
+    const currentY = windowHeight / 2 + (e.clientY - screenCenterY) / zoomScale
 
     ctx.beginPath()
     ctx.moveTo(lastPositionRef.current.x, lastPositionRef.current.y)
@@ -260,8 +247,26 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
 
 
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    // 阻止默认的滚动行为
+    // e.preventDefault(); // React 的合成事件不需要调用这个，因为是在容器上
+
+    // 计算新的缩放比例
+    const delta = e.deltaY > 0 ? -CANVAS_CONFIG.ZOOM_STEP : CANVAS_CONFIG.ZOOM_STEP;
+    const newScale = Math.max(
+      CANVAS_CONFIG.MIN_ZOOM_SCALE,
+      Math.min(CANVAS_CONFIG.MAX_ZOOM_SCALE, zoomScale + delta)
+    );
+
+    zoomToScaleWithPoint(newScale, e.clientX, e.clientY);
+  };
+
   return (
-    <>
+    <div 
+      className="canvas-container" 
+      onWheel={handleWheel}
+      style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}
+    >
       <div
         className="grid-background"
         style={{
@@ -303,7 +308,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           }}
         />
       )}
-    </>
+    </div>
   )
 }
 )
