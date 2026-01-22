@@ -5,9 +5,11 @@ interface WebSocketMessage {
   timestamp?: number
   roomId?: string
   userId?: string
+  data?: any
 }
 
 type RoomDeletedCallback = (roomId: string) => void
+type DrawEventCallback = (data: any) => void
 
 class WebSocketService {
   private ws: WebSocket | null = null
@@ -18,9 +20,26 @@ class WebSocketService {
   private reconnectDelay = 3000
   private heartbeatInterval: NodeJS.Timeout | null = null
   private onRoomDeletedCallback: RoomDeletedCallback | null = null
+  private onDrawEventCallback: DrawEventCallback | null = null
 
   setRoomDeletedCallback(callback: RoomDeletedCallback): void {
     this.onRoomDeletedCallback = callback
+  }
+
+  setDrawEventCallback(callback: DrawEventCallback): void {
+    this.onDrawEventCallback = callback
+  }
+
+  sendDrawEvent(data: any): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.userId) {
+      const message: WebSocketMessage = {
+        type: 'draw_event',
+        roomId: this.roomId,
+        userId: this.userId,
+        data
+      }
+      this.ws.send(JSON.stringify(message))
+    }
   }
 
   connect(userId: string, roomId: string): Promise<void> {
@@ -53,7 +72,7 @@ class WebSocketService {
         this.ws.onmessage = (event) => {
           try {
             const message: WebSocketMessage = JSON.parse(event.data)
-            console.log(`收到WebSocket消息: ${JSON.stringify(message)}`)
+            // console.log(`收到WebSocket消息: ${JSON.stringify(message)}`)
             
             if (message.type === 'joined') {
               console.log(`成功加入房间 ${message.roomId}`)
@@ -70,6 +89,10 @@ class WebSocketService {
               
               if (this.onRoomDeletedCallback && message.roomId) {
                 this.onRoomDeletedCallback(message.roomId)
+              }
+            } else if (message.type === 'draw_event') {
+              if (this.onDrawEventCallback && message.data) {
+                this.onDrawEventCallback(message.data)
               }
             }
           } catch (error) {

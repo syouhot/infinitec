@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import './App.css'
 import Home from './components/Home'
 import CanvasMenu from './components/CanvasMenu'
@@ -5,6 +6,7 @@ import Toolbar from './components/Toolbar'
 import CanvasMain from './components/CanvasMain'
 import CanvasModel from './components/CanvasModel'
 import Eraser from './components/Eraser'
+import HistoryControls from './components/HistoryControls'
 import { useAppStore, useToolStore, useCanvasStore } from './store'
 import { DatabaseProvider } from './contexts/DatabaseContext'
 import { AuthProvider } from './contexts/AuthContext'
@@ -19,6 +21,8 @@ function App() {
   const currentColor = useCanvasStore((state) => state.currentColor)
   const currentLineWidth = useCanvasStore((state) => state.currentLineWidth)
   const eraserSize = useCanvasStore((state) => state.eraserSize)
+  
+  const canvasRef = useRef<any>(null)
 
   const handleDoubleClick = () => {
     setIsDrawingMode(true)
@@ -31,6 +35,14 @@ function App() {
     websocketService.disconnect()
   }
 
+  const handleUndo = () => {
+    canvasRef.current?.undo()
+  }
+
+  const handleRedo = () => {
+    canvasRef.current?.redo()
+  }
+
   return (
     <AuthProvider>
       <DatabaseProvider>
@@ -39,6 +51,7 @@ function App() {
           {isDrawingMode && (
             <>
               <CanvasMain 
+                ref={canvasRef}
                 selectedTool={selectedTool} 
                 currentColor={currentColor}
                 currentLineWidth={currentLineWidth}
@@ -48,6 +61,7 @@ function App() {
               <Toolbar />
               <CanvasModel />
               <Eraser />
+              <HistoryControls onUndo={handleUndo} onRedo={handleRedo} />
             </>
           )}
         </div>
