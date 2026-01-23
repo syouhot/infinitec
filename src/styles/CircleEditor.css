@@ -1,0 +1,248 @@
+:root {
+  /* Default (Light) Theme Variables -> Now Dark Style by Default */
+  --circle-toolbar-bg: rgba(30, 30, 40, 0.95);
+  --circle-toolbar-border: rgba(255, 255, 255, 0.2);
+  --circle-toolbar-text: rgba(255, 255, 255, 0.8);
+  --circle-toolbar-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --circle-btn-hover: rgba(255, 255, 255, 0.2);
+  --circle-btn-active: rgba(100, 150, 255, 0.3);
+  --circle-btn-active-text: rgba(100, 200, 255, 1);
+  --circle-handle-bg: #1e1e28;
+  --circle-handle-border: #6496ff;
+  --circle-popover-bg: #2d2d3a;
+  
+  /* Slider Colors for Dark Theme (High Contrast) */
+  --circle-slider-track: rgba(255, 255, 255, 0.2);
+  --circle-slider-thumb: #fff;
+  --circle-slider-thumb-hover: #1a73e8;
+}
+
+/* Dark Theme Overrides -> Now Light Style */
+body.canvas-bg-dark {
+  --circle-toolbar-bg: rgba(255, 255, 255, 0.95);
+  --circle-toolbar-border: rgba(0, 0, 0, 0.1);
+  --circle-toolbar-text: #333;
+  --circle-toolbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --circle-btn-hover: rgba(0, 0, 0, 0.05);
+  --circle-btn-active: rgba(26, 115, 232, 0.1);
+  --circle-btn-active-text: #1a73e8;
+  --circle-handle-bg: #fff;
+  --circle-handle-border: #1a73e8;
+  --circle-popover-bg: #fff;
+  
+  /* Slider Colors for Light Theme (High Contrast) */
+  --circle-slider-track: rgba(0, 0, 0, 0.3);
+  --circle-slider-thumb: #1a73e8;
+  --circle-slider-thumb-hover: #1557b0;
+}
+
+.circle-editor-container {
+  position: absolute;
+  pointer-events: all;
+  touch-action: none;
+}
+
+.circle-shape {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  position: relative;
+  border-radius: 50%; /* Make it a circle */
+}
+
+.resize-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: var(--circle-handle-bg);
+  border: 1px solid var(--circle-handle-border);
+  border-radius: 50%;
+  z-index: 10;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.handle-nw { top: -5px; left: -5px; cursor: nw-resize; }
+.handle-ne { top: -5px; right: -5px; cursor: ne-resize; }
+.handle-sw { bottom: -5px; left: -5px; cursor: sw-resize; }
+.handle-se { bottom: -5px; right: -5px; cursor: se-resize; }
+.handle-n { top: -5px; left: 50%; transform: translateX(-50%); cursor: n-resize; }
+.handle-s { bottom: -5px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
+.handle-w { left: -5px; top: 50%; transform: translateY(-50%); cursor: w-resize; }
+.handle-e { right: -5px; top: 50%; transform: translateY(-50%); cursor: e-resize; }
+
+.circle-toolbar {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  background-color: var(--circle-toolbar-bg);
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--circle-toolbar-border);
+  box-shadow: var(--circle-toolbar-shadow);
+  margin-bottom: 10px;
+  z-index: 20;
+  /* Ensure consistent frosted glass effect */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.toolbar-separator {
+  width: 1px;
+  background-color: var(--circle-toolbar-border);
+  margin: 0 4px;
+}
+
+.toolbar-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--circle-toolbar-text);
+  transition: all 0.2s;
+  position: relative;
+}
+
+.toolbar-btn:hover {
+  background-color: var(--circle-btn-hover);
+  border-color: var(--circle-toolbar-border);
+}
+
+.toolbar-btn.active {
+  background-color: var(--circle-btn-active);
+  color: var(--circle-btn-active-text);
+  border-color: var(--circle-btn-active-text);
+}
+
+.toolbar-btn.primary {
+  color: #1a73e8;
+}
+body.canvas-bg-dark .toolbar-btn.primary {
+  color: #6496ff;
+}
+
+.toolbar-btn.danger {
+  color: #d93025;
+}
+body.canvas-bg-dark .toolbar-btn.danger {
+  color: #ff6b6b;
+}
+
+/* Fix for menu disappearing: Add invisible bridge */
+.color-picker-popover::before,
+.width-slider-popover::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 0;
+  width: 100%;
+  height: 20px;
+}
+
+.color-picker-popover {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--circle-toolbar-bg);
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: var(--circle-toolbar-shadow);
+  border: 1px solid var(--circle-toolbar-border);
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 30;
+  width: 180px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.color-options {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.color-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.color-circle:hover {
+  transform: scale(1.1);
+}
+
+.color-circle.selected {
+  border-color: var(--circle-btn-active-text);
+}
+
+.width-slider-popover {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--circle-toolbar-bg) ;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: var(--circle-toolbar-shadow);
+  border: 1px solid var(--circle-toolbar-border);
+  margin-top: 8px;
+  width: 200px;
+  z-index: 30;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.width-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.width-slider {
+  flex: 1;
+  cursor: pointer;
+  /* Use new slider variables */
+  background: var(--circle-slider-track) !important;
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.width-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--circle-slider-thumb);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.width-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  background: var(--circle-slider-thumb-hover);
+}
+
+.width-value {
+  font-size: 12px;
+  color: var(--circle-toolbar-text) !important;
+  min-width: 20px;
+  text-align: right;
+}

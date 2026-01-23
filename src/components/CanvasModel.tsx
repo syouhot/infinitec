@@ -57,7 +57,7 @@ function CanvasModel() {
     // Only switch to pencil if we are in pencil mode or if we want to force switch.
     // User wants rectangle color selection.
     // If selectedTool is rectangle, we should NOT switch to pencil.
-    if (selectedTool !== 'rectangle') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle') {
         setSelectedTool('pencil')
     }
   }
@@ -68,7 +68,7 @@ function CanvasModel() {
     setShowColorPicker(true)
     setSelectedBottomIndex(index)
     // Same here
-    if (selectedTool !== 'rectangle') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle') {
         setSelectedTool('pencil')
     }
   }
@@ -78,7 +78,7 @@ function CanvasModel() {
     setPickerColor(newColor)
     setColor(newColor)
     // Same here
-    if (selectedTool !== 'rectangle') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle') {
         setSelectedTool('pencil')
     }
     if (selectedBottomIndex !== null) {
@@ -93,7 +93,7 @@ function CanvasModel() {
   return (
     <div 
       className="canvas-model-container"
-      onMouseEnter={() => (selectedTool === 'pencil' || selectedTool === 'rectangle') && setIsMenuOpen(true)}
+      onMouseEnter={() => (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle') && setIsMenuOpen(true)}
       onMouseLeave={() => setIsMenuOpen(false)}
     >
       <div 
@@ -103,7 +103,7 @@ function CanvasModel() {
       >
         {React.createElement(selectedToolIcon, { size: 24 })}
       </div>
-      <div className={`model-menu ${isMenuOpen && (selectedTool === 'pencil' || selectedTool === 'rectangle') ? 'open' : ''}`}>
+      <div className={`model-menu ${isMenuOpen && (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle') ? 'open' : ''}`}>
         <div className="menu-section">
           <div className="menu-header">
             <FaPalette size={16} />
@@ -148,7 +148,7 @@ function CanvasModel() {
             However, RectangleEditor has its own width control. 
             Let's keep it simple: Color only as requested.
         */}
-        {selectedTool === 'pencil' && (
+        
         <div className="menu-section">
           <div className="menu-header">
             <FaLineSize size={16} />
@@ -167,7 +167,6 @@ function CanvasModel() {
             <span className="width-value">{currentLineWidth}px</span>
           </div>
         </div>
-        )}
 
         <div className="menu-separator" />
 

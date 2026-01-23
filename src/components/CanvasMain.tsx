@@ -6,6 +6,7 @@ import { useAppStore, useToolStore, useCanvasStore } from '../store/index' // As
 import '../styles/CanvasMain.css'
 
 import RectangleEditor from './RectangleEditor'
+import CircleEditor from './CircleEditor'
 
 interface Point {
   x: number
@@ -19,7 +20,7 @@ interface Stroke {
   color: string
   width: number
   isErased: boolean
-  tool: 'pencil' | 'eraser' | 'rectangle'
+  tool: 'pencil' | 'eraser' | 'rectangle' | 'circle'
   isFilled?: boolean
 }
 
@@ -50,6 +51,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const [zoomScale, setZoomScale] = useState(CANVAS_CONFIG.DEFAULT_ZOOM_SCALE)
   
   const [isEditingRectangle, setIsEditingRectangle] = useState(false);
+  const [isEditingCircle, setIsEditingCircle] = useState(false);
   const [tempRect, setTempRect] = useState<{x: number, y: number, width: number, height: number} | null>(null);
 
   const strokesRef = useRef<Stroke[]>([])
@@ -165,6 +167,29 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           ctx.lineWidth = stroke.width;
           ctx.strokeRect(x, y, w, h);
         }
+      } else if (stroke.tool === 'circle') {
+        if (stroke.points.length < 2) return;
+        ctx.globalCompositeOperation = 'source-over';
+        const p1 = stroke.points[0];
+        const p2 = stroke.points[1];
+        
+        const x = Math.min(p1.x, p2.x);
+        const y = Math.min(p1.y, p2.y);
+        const w = Math.abs(p1.x - p2.x);
+        const h = Math.abs(p1.y - p2.y);
+        
+        ctx.beginPath();
+        // Draw ellipse/circle
+        ctx.ellipse(x + w/2, y + h/2, w/2, h/2, 0, 0, 2 * Math.PI);
+        
+        if (stroke.isFilled) {
+          ctx.fillStyle = stroke.color;
+          ctx.fill();
+        } else {
+          ctx.strokeStyle = stroke.color;
+          ctx.lineWidth = stroke.width;
+          ctx.stroke();
+        }
       } else {
         ctx.strokeStyle = stroke.color;
         ctx.lineWidth = stroke.width;
@@ -231,6 +256,27 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         ctx.strokeStyle = stroke.color;
         ctx.lineWidth = stroke.width;
         ctx.strokeRect(x, y, w, h);
+      }
+    } else if (stroke.tool === 'circle') {
+      if (stroke.points.length < 2) return;
+      const p1 = stroke.points[0];
+      const p2 = stroke.points[1];
+      
+      const x = Math.min(p1.x, p2.x);
+      const y = Math.min(p1.y, p2.y);
+      const w = Math.abs(p1.x - p2.x);
+      const h = Math.abs(p1.y - p2.y);
+      
+      ctx.beginPath();
+      ctx.ellipse(x + w/2, y + h/2, w/2, h/2, 0, 0, 2 * Math.PI);
+      
+      if (stroke.isFilled) {
+        ctx.fillStyle = stroke.color;
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.width;
+        ctx.stroke();
       }
     } else {
       ctx.strokeStyle = stroke.color;
@@ -475,7 +521,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       return
     }
     if (e.button === 2) return
-    if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle') return
+    if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle') return
     setIsDrawing(true)
 
     const windowWidth = window.innerWidth
@@ -491,7 +537,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     
     lastPositionRef.current = startPoint
     
-    if (selectedTool === 'rectangle') {
+    if (selectedTool === 'rectangle' || selectedTool === 'circle') {
       setTempRect({ x: startPoint.x, y: startPoint.y, width: 0, height: 0 });
       return;
     }
@@ -566,7 +612,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         }
 
         if (!isDrawing || !lastPositionRef.current) return
-        if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle') return
+        if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle') return
 
         const windowWidth = window.innerWidth
         const windowHeight = window.innerHeight
@@ -578,7 +624,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         const currentY = windowHeight / 2 + (clientY - screenCenterY) / zoomScale
         const currentPoint = { x: currentX, y: currentY }
         
-        if (selectedTool === 'rectangle') {
+        if (selectedTool === 'rectangle' || selectedTool === 'circle') {
           const start = lastPositionRef.current;
           const deltaX = currentPoint.x - start.x;
           const deltaY = currentPoint.y - start.y;
@@ -661,11 +707,15 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   }
 
   const handleMouseUp = () => {
-    if (selectedTool === 'rectangle' && isDrawing) {
+    if ((selectedTool === 'rectangle' || selectedTool === 'circle') && isDrawing) {
       setIsDrawing(false);
       lastPositionRef.current = null;
       if (tempRect && tempRect.width > 0 && tempRect.height > 0) {
-        setIsEditingRectangle(true);
+        if (selectedTool === 'rectangle') {
+          setIsEditingRectangle(true);
+        } else {
+          setIsEditingCircle(true);
+        }
       } else {
         setTempRect(null);
       }
@@ -689,13 +739,21 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     const uid = websocketService.getUserId() || 'local';
     ensureUserLayer(uid);
 
+    let p1 = { x: rect.x, y: rect.y };
+    let p2 = { x: rect.x + rect.width, y: rect.y + rect.height };
+
+    // Adjust for stroke width to match visual preview (border-box)
+    // Canvas draws stroke centered on path, so we move path inwards by width/2
+    if (!style.isFilled) {
+      const offset = style.width / 2;
+      p1 = { x: rect.x + offset, y: rect.y + offset };
+      p2 = { x: rect.x + rect.width - offset, y: rect.y + rect.height - offset };
+    }
+
     const newStroke: Stroke = {
       id: Math.random().toString(36).substr(2, 9),
       userId: uid,
-      points: [
-        { x: rect.x, y: rect.y },
-        { x: rect.x + rect.width, y: rect.y + rect.height }
-      ],
+      points: [p1, p2],
       color: style.color,
       width: style.width,
       isErased: false,
@@ -720,8 +778,55 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     setTempRect(null);
   }, [drawStroke, ensureUserLayer]);
 
+  const handleConfirmCircle = useCallback((rect: { x: number, y: number, width: number, height: number }, style: { color: string, width: number, isFilled: boolean }) => {
+    const uid = websocketService.getUserId() || 'local';
+    ensureUserLayer(uid);
+
+    let p1 = { x: rect.x, y: rect.y };
+    let p2 = { x: rect.x + rect.width, y: rect.y + rect.height };
+
+    // Adjust for stroke width to match visual preview (border-box)
+    if (!style.isFilled) {
+      const offset = style.width / 2;
+      p1 = { x: rect.x + offset, y: rect.y + offset };
+      p2 = { x: rect.x + rect.width - offset, y: rect.y + rect.height - offset };
+    }
+
+    const newStroke: Stroke = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: uid,
+      points: [p1, p2],
+      color: style.color,
+      width: style.width,
+      isErased: false,
+      tool: 'circle',
+      isFilled: style.isFilled
+    }
+
+    strokesRef.current.push(newStroke);
+    drawStroke(newStroke);
+    
+    // History
+    historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
+    redoStackRef.current = [];
+
+    // Websocket
+    websocketService.sendDrawEvent({
+      type: 'stroke',
+      stroke: newStroke
+    });
+
+    setIsEditingCircle(false);
+    setTempRect(null);
+  }, [drawStroke, ensureUserLayer]);
+
   const handleCancelRectangle = useCallback(() => {
     setIsEditingRectangle(false);
+    setTempRect(null);
+  }, []);
+
+  const handleCancelCircle = useCallback(() => {
+    setIsEditingCircle(false);
     setTempRect(null);
   }, []);
 
@@ -874,6 +979,17 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
                 onCancel={handleCancelRectangle}
               />
             )}
+
+            {isEditingCircle && tempRect && (
+              <CircleEditor
+                initialRect={tempRect}
+                initialColor={currentColor}
+                initialWidth={currentLineWidth}
+                zoomScale={zoomScale}
+                onConfirm={handleConfirmCircle}
+                onCancel={handleCancelCircle}
+              />
+            )}
             
             {isDrawing && selectedTool === 'rectangle' && tempRect && (
                  <div style={{
@@ -883,6 +999,20 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
                     width: tempRect.width,
                     height: tempRect.height,
                     border: `${currentLineWidth}px solid ${currentColor}`,
+                    pointerEvents: 'none',
+                    boxSizing: 'border-box'
+                 }} />
+            )}
+
+            {isDrawing && selectedTool === 'circle' && tempRect && (
+                 <div style={{
+                    position: 'absolute',
+                    left: tempRect.x,
+                    top: tempRect.y,
+                    width: tempRect.width,
+                    height: tempRect.height,
+                    border: `${currentLineWidth}px solid ${currentColor}`,
+                    borderRadius: '50%',
                     pointerEvents: 'none',
                     boxSizing: 'border-box'
                  }} />
