@@ -31,6 +31,8 @@ function CanvasModel() {
   const setLineWidth = useCanvasStore((state) => state.setLineWidth)
   const currentLineDash = useCanvasStore((state) => state.currentLineDash)
   const setLineDash = useCanvasStore((state) => state.setLineDash)
+  const currentArrowType = useCanvasStore((state) => state.currentArrowType)
+  const setArrowType = useCanvasStore((state) => state.setArrowType)
 
   const tools = [
     { id: 'pencil', icon: FaPencil, label: '画笔' },
@@ -66,7 +68,7 @@ function CanvasModel() {
     // Only switch to pencil if we are in pencil mode or if we want to force switch.
     // User wants rectangle color selection.
     // If selectedTool is rectangle, we should NOT switch to pencil.
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') {
       setSelectedTool('pencil')
     }
   }
@@ -77,7 +79,7 @@ function CanvasModel() {
     setShowColorPicker(true)
     setSelectedBottomIndex(index)
     // Same here
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') {
       setSelectedTool('pencil')
     }
   }
@@ -87,7 +89,7 @@ function CanvasModel() {
     setPickerColor(newColor)
     setColor(newColor)
     // Same here
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') {
       setSelectedTool('pencil')
     }
     if (selectedBottomIndex !== null) {
@@ -102,7 +104,7 @@ function CanvasModel() {
   return (
     <div
       className="canvas-model-container"
-      onMouseEnter={() => (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line') && setIsMenuOpen(true)}
+      onMouseEnter={() => (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line' || selectedTool === 'arrow') && setIsMenuOpen(true)}
       onMouseLeave={() => setIsMenuOpen(false)}
     >
       <div
@@ -112,7 +114,7 @@ function CanvasModel() {
       >
         {React.createElement(selectedToolIcon, { size: 24 })}
       </div>
-      <div className={`model-menu ${isMenuOpen && (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line') ? 'open' : ''}`}>
+      <div className={`model-menu ${isMenuOpen && (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line' || selectedTool === 'arrow') ? 'open' : ''}`}>
         <div className="menu-section">
           <div className="menu-header">
             <FaPalette size={16} />
@@ -187,6 +189,67 @@ function CanvasModel() {
                       />
                     </svg>
 
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Arrow Style Section */}
+        {selectedTool === 'arrow' && (
+          <div className="menu-section">
+            <div className="menu-header">
+              <FaArrowRight size={16} />
+              <span>样式</span>
+            </div>
+            <div className="style-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+              {[
+                { id: 'standard', type: 'standard', label: '标准' },
+                { id: 'double', type: 'double', label: '双向' },
+                { id: 'solid', type: 'solid', label: '实心' },
+                { id: 'solid-double', type: 'solid-double', label: '实心双向' },
+              ].map((style) => {
+                const isSelected = currentArrowType === style.type;
+                return (
+                  <button
+                    key={style.id}
+                    className={`style-button ${isSelected ? 'active' : ''}`}
+                    onClick={() => setArrowType(style.type as any)}
+                    title={style.label}
+                    style={{
+                      height: '32px',
+                      border: isSelected ? '2px solid #1a73e8' : '1px solid #ddd',
+                      borderRadius: '6px',
+                      background: 'white',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 4px'
+                    }}
+                  >
+                     <svg width="24" height="24" viewBox="0 0 24 24" style={{ overflow: 'visible' }}>
+                        <line x1="4" y1="12" x2="20" y2="12" stroke="#333" strokeWidth="2" strokeLinecap="round" />
+                        {style.type === 'standard' && (
+                           <polyline points="15,7 20,12 15,17" fill="none" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        )}
+                        {style.type === 'double' && (
+                           <>
+                             <polyline points="15,7 20,12 15,17" fill="none" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                             <polyline points="9,7 4,12 9,17" fill="none" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                           </>
+                        )}
+                        {style.type === 'solid' && (
+                           <polygon points="20,12 14,8 14,16" fill="#333" />
+                        )}
+                        {style.type === 'solid-double' && (
+                           <>
+                             <polygon points="20,12 14,8 14,16" fill="#333" />
+                             <polygon points="4,12 10,8 10,16" fill="#333" />
+                           </>
+                        )}
+                     </svg>
                   </button>
                 )
               })}

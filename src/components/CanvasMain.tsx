@@ -8,9 +8,11 @@ import '../styles/CanvasMain.css'
 import RectangleEditor from './RectangleEditor'
 import CircleEditor from './CircleEditor'
 import LineEditor from './LineEditor'
+import ArrowEditor from './ArrowEditor'
 import type { RectangleEditorRef } from './RectangleEditor'
 import type { LineEditorRef } from './LineEditor'
 import type { CircleEditorRef } from './CircleEditor'
+import type { ArrowEditorRef } from './ArrowEditor'
 interface Point {
   x: number
   y: number
@@ -23,9 +25,10 @@ interface Stroke {
   color: string
   width: number
   isErased: boolean
-  tool: 'pencil' | 'eraser' | 'rectangle' | 'circle' | 'line'
+  tool: 'pencil' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow'
   isFilled?: boolean
   lineDash?: number[]
+  arrowType?: 'standard' | 'double' | 'solid' | 'solid-double'
 }
 
 interface HistoryAction {
@@ -38,12 +41,13 @@ interface CanvasMainProps {
   currentColor: string
   currentLineWidth: number
   currentLineDash?: number[]
+  currentArrowType?: 'standard' | 'double' | 'solid' | 'solid-double'
   eraserSize: number
   onZoomChange?: (scale: number, offset: { x: number; y: number }) => void;
 }
 
 const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
-  const { selectedTool, currentColor, currentLineWidth, currentLineDash = [], eraserSize, onZoomChange } = props;
+  const { selectedTool, currentColor, currentLineWidth, currentLineDash = [], currentArrowType = 'standard', eraserSize, onZoomChange } = props;
   const [isDrawing, setIsDrawing] = useState(false)
   const lastPositionRef = useRef<{ x: number, y: number } | null>(null)
   const eraserCursorRef = useRef<HTMLDivElement>(null)
@@ -58,9 +62,12 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const [isEditingRectangle, setIsEditingRectangle] = useState(false);
   const [isEditingCircle, setIsEditingCircle] = useState(false);
   const [isEditingLine, setIsEditingLine] = useState(false);
+  const [isEditingArrow, setIsEditingArrow] = useState(false);
   const [tempRect, setTempRect] = useState<{x: number, y: number, width: number, height: number} | null>(null);
   const [tempLine, setTempLine] = useState<{p1: Point, p2: Point} | null>(null);
+  const [tempArrow, setTempArrow] = useState<{p1: Point, p2: Point} | null>(null);
   const [lineStartPoint, setLineStartPoint] = useState<Point | null>(null);
+  const [arrowStartPoint, setArrowStartPoint] = useState<Point | null>(null);
 
   const strokesRef = useRef<Stroke[]>([])
   const currentStrokeRef = useRef<Stroke | null>(null)
@@ -70,6 +77,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const rectangleEditorRef = useRef<RectangleEditorRef>(null);
   const circleEditorRef = useRef<CircleEditorRef>(null);
   const lineEditorRef = useRef<LineEditorRef>(null);
+  const arrowEditorRef = useRef<ArrowEditorRef>(null);
 
   // Auto-confirm when tool changes
   useEffect(() => {
@@ -82,7 +90,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     if (isEditingLine && selectedTool !== 'line') {
       lineEditorRef.current?.confirm();
     }
-  }, [selectedTool, isEditingRectangle, isEditingCircle, isEditingLine]);
+    if (isEditingArrow && selectedTool !== 'arrow') {
+      arrowEditorRef.current?.confirm();
+    }
+  }, [selectedTool, isEditingRectangle, isEditingCircle, isEditingLine, isEditingArrow]);
   
   // Multi-canvas architecture state
   const [activeUserIds, setActiveUserIds] = useState<Set<string>>(new Set(['local']));
@@ -325,6 +336,74 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       ctx.lineTo(stroke.points[1].x, stroke.points[1].y);
       ctx.stroke();
       ctx.setLineDash([]);
+    } else if (stroke.tool === 'arrow') {
+      if (stroke.points.length < 2) return;
+      const p1 = stroke.points[0];
+      const p2 = stroke.points[1];
+      const width = stroke.width;
+      const color = stroke.color;
+      const arrowType = stroke.arrowType || 'standard';
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Draw Main Line
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+
+      // Draw Arrow Heads
+      const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+      const headLen = Math.max(10, width * 3);
+
+      const drawHead = (x: number, y: number, angle: number, isSolid: boolean) => {
+           const actualHeadLen = isSolid ? headLen * 1.8 : headLen;
+           if (isSolid) {
+               const pBack = { x: x - actualHeadLen * Math.cos(angle), y: y - actualHeadLen * Math.sin(angle) };
+               const pLeft = { 
+                   x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle - Math.PI/2),
+                   y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle - Math.PI/2)
+               };
+               const pRight = { 
+                   x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle + Math.PI/2),
+                   y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle + Math.PI/2)
+               };
+               ctx.fillStyle = color;
+               ctx.beginPath();
+               ctx.moveTo(x, y);
+               ctx.lineTo(pLeft.x, pLeft.y);
+               ctx.lineTo(pRight.x, pRight.y);
+               ctx.closePath();
+               ctx.fill();
+           } else {
+               const xLeft = x - headLen * Math.cos(angle - Math.PI / 6);
+               const yLeft = y - headLen * Math.sin(angle - Math.PI / 6);
+               const xRight = x - headLen * Math.cos(angle + Math.PI / 6);
+               const yRight = y - headLen * Math.sin(angle + Math.PI / 6);
+               
+               ctx.beginPath();
+               ctx.moveTo(xLeft, yLeft);
+               ctx.lineTo(x, y);
+               ctx.lineTo(xRight, yRight);
+               ctx.stroke();
+           }
+      }
+
+      if (arrowType === 'standard') {
+          drawHead(p2.x, p2.y, angle, false);
+      } else if (arrowType === 'double') {
+          drawHead(p1.x, p1.y, angle + Math.PI, false);
+          drawHead(p2.x, p2.y, angle, false);
+      } else if (arrowType === 'solid') {
+          drawHead(p2.x, p2.y, angle, true);
+      } else if (arrowType === 'solid-double') {
+          drawHead(p1.x, p1.y, angle + Math.PI, true);
+          drawHead(p2.x, p2.y, angle, true);
+      }
     } else {
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = stroke.width;
@@ -579,8 +658,11 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     if (isEditingLine) {
       lineEditorRef.current?.confirm();
     }
+    if (isEditingArrow) {
+      arrowEditorRef.current?.confirm();
+    }
 
-    if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line') return
+    if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') return
     setIsDrawing(true)
 
     const windowWidth = window.innerWidth
@@ -627,6 +709,36 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         setLineStartPoint(startPoint);
         setTempLine({ p1: startPoint, p2: startPoint });
         setIsEditingLine(false);
+      }
+      return;
+    }
+
+    if (selectedTool === 'arrow') {
+      if (arrowStartPoint) {
+        // Second click - Finish arrow and enter edit mode
+        let p2 = startPoint;
+        if (e.ctrlKey) {
+             const dx = startPoint.x - arrowStartPoint.x;
+             const dy = startPoint.y - arrowStartPoint.y;
+             const angle = Math.atan2(dy, dx);
+             const distance = Math.sqrt(dx * dx + dy * dy);
+             
+             // Snap to 15 degrees (PI/12 radians)
+             const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
+             
+             const snappedX = arrowStartPoint.x + distance * Math.cos(snapAngle);
+             const snappedY = arrowStartPoint.y + distance * Math.sin(snapAngle);
+             p2 = { x: snappedX, y: snappedY };
+        }
+        
+        setTempArrow({ p1: arrowStartPoint, p2: p2 });
+        setIsEditingArrow(true);
+        setArrowStartPoint(null);
+      } else {
+        // First click - Start arrow
+        setArrowStartPoint(startPoint);
+        setTempArrow({ p1: startPoint, p2: startPoint });
+        setIsEditingArrow(false);
       }
       return;
     }
@@ -730,9 +842,29 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
            return;
         }
 
+        if (selectedTool === 'arrow' && arrowStartPoint) {
+           if (isCtrlPressed) {
+             const dx = currentPoint.x - arrowStartPoint.x;
+             const dy = currentPoint.y - arrowStartPoint.y;
+             const angle = Math.atan2(dy, dx);
+             const distance = Math.sqrt(dx * dx + dy * dy);
+             
+             // Snap to 15 degrees (PI/12 radians)
+             const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
+             
+             const snappedX = arrowStartPoint.x + distance * Math.cos(snapAngle);
+             const snappedY = arrowStartPoint.y + distance * Math.sin(snapAngle);
+             
+             setTempArrow({ p1: arrowStartPoint, p2: { x: snappedX, y: snappedY } });
+           } else {
+             setTempArrow({ p1: arrowStartPoint, p2: currentPoint });
+           }
+           return;
+        }
+
         if (!isDrawing || !lastPositionRef.current) return
         
-        if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line') return
+        if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') return
 
         if (selectedTool === 'rectangle' || selectedTool === 'circle') {
           const start = lastPositionRef.current;
@@ -981,6 +1113,41 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     setTempLine(null);
   }, []);
 
+  const handleConfirmArrow = useCallback((p1: Point, p2: Point, style: { color: string, width: number, arrowType: 'standard' | 'double' | 'solid' | 'solid-double' }) => {
+    const uid = websocketService.getUserId() || 'local';
+    ensureUserLayer(uid);
+
+    const newStroke: Stroke = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: uid,
+      points: [p1, p2],
+      color: style.color,
+      width: style.width,
+      isErased: false,
+      tool: 'arrow',
+      arrowType: style.arrowType
+    }
+
+    strokesRef.current.push(newStroke);
+    drawStroke(newStroke);
+    
+    historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
+    redoStackRef.current = [];
+
+    websocketService.sendDrawEvent({
+      type: 'stroke',
+      stroke: newStroke
+    });
+
+    setIsEditingArrow(false);
+    setTempArrow(null);
+  }, [drawStroke, ensureUserLayer]);
+
+  const handleCancelArrow = useCallback(() => {
+    setIsEditingArrow(false);
+    setTempArrow(null);
+  }, []);
+
   const handleMouseLeave = () => {
     if (isDrawing && currentStrokeRef.current) {
         websocketService.sendDrawEvent({
@@ -1157,6 +1324,20 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
                 onCancel={handleCancelLine}
               />
             )}
+
+            {isEditingArrow && tempArrow && (
+              <ArrowEditor
+                ref={arrowEditorRef}
+                initialP1={tempArrow.p1}
+                initialP2={tempArrow.p2}
+                initialColor={currentColor}
+                initialWidth={currentLineWidth}
+                initialArrowType={currentArrowType}
+                zoomScale={zoomScale}
+                onConfirm={handleConfirmArrow}
+                onCancel={handleCancelArrow}
+              />
+            )}
             
             {isDrawing && selectedTool === 'rectangle' && tempRect && (
                  <div style={{
@@ -1202,6 +1383,66 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
                   strokeDasharray={currentLineDash ? currentLineDash.join(',') : undefined}
                   opacity={0.5}
                 />
+              </svg>
+            )}
+
+            {arrowStartPoint && selectedTool === 'arrow' && tempArrow && (
+              <svg 
+                width={canvasSize.width}
+                height={canvasSize.height}
+                style={{ position: 'absolute', overflow: 'visible', pointerEvents: 'none', left: 0, top: 0, opacity: 0.5 }}
+              >
+                {(() => {
+                  const p1 = tempArrow.p1;
+                  const p2 = tempArrow.p2;
+                  const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                  const width = currentLineWidth;
+                  const headLen = Math.max(10, width * 3);
+                  const color = currentColor;
+                  
+                  const drawHead = (x: number, y: number, angle: number, isSolid: boolean) => {
+                     const actualHeadLen = isSolid ? headLen * 1.8 : headLen;
+                     if (isSolid) {
+                         const pTip = { x: x, y: y };
+                         const pBack = { x: x - actualHeadLen * Math.cos(angle), y: y - actualHeadLen * Math.sin(angle) };
+                         const pLeft = { 
+                             x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle - Math.PI/2),
+                             y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle - Math.PI/2)
+                         };
+                         const pRight = { 
+                             x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle + Math.PI/2),
+                             y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle + Math.PI/2)
+                         };
+                         return <polygon points={`${pTip.x},${pTip.y} ${pLeft.x},${pLeft.y} ${pRight.x},${pRight.y}`} fill={color} />;
+                     } else {
+                         const xLeft = x - headLen * Math.cos(angle - Math.PI / 6);
+                         const yLeft = y - headLen * Math.sin(angle - Math.PI / 6);
+                         const xRight = x - headLen * Math.cos(angle + Math.PI / 6);
+                         const yRight = y - headLen * Math.sin(angle + Math.PI / 6);
+                         return <polyline points={`${xLeft},${yLeft} ${x},${y} ${xRight},${yRight}`} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />;
+                     }
+                  };
+
+                  return (
+                    <>
+                      <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={color} strokeWidth={width} strokeLinecap="round" />
+                      {currentArrowType === 'standard' && drawHead(p2.x, p2.y, angle, false)}
+                      {currentArrowType === 'double' && (
+                        <>
+                          {drawHead(p1.x, p1.y, angle + Math.PI, false)}
+                          {drawHead(p2.x, p2.y, angle, false)}
+                        </>
+                      )}
+                      {currentArrowType === 'solid' && drawHead(p2.x, p2.y, angle, true)}
+                      {currentArrowType === 'solid-double' && (
+                        <>
+                          {drawHead(p1.x, p1.y, angle + Math.PI, true)}
+                          {drawHead(p2.x, p2.y, angle, true)}
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
               </svg>
             )}
          </div>

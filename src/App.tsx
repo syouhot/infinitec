@@ -20,6 +20,7 @@ function App() {
   const currentLineWidth = useCanvasStore((state) => state.currentLineWidth)
   const currentLineDash = useCanvasStore((state) => state.currentLineDash)
   const eraserSize = useCanvasStore((state) => state.eraserSize)
+  const currentArrowType = useCanvasStore((state) => state.currentArrowType)
 
   const handleDoubleClick = () => {
     setIsDrawingMode(true)
@@ -44,6 +45,7 @@ function App() {
                 currentColor={currentColor}
                 currentLineWidth={currentLineWidth}
                 currentLineDash={currentLineDash}
+                currentArrowType={currentArrowType}
                 eraserSize={eraserSize}
               />
               <CanvasMenu onBack={handleExitDrawingMode} />
