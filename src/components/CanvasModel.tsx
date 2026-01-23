@@ -31,19 +31,19 @@ function CanvasModel() {
   const setLineWidth = useCanvasStore((state) => state.setLineWidth)
 
   const tools = [
-    { id: 'pencil', icon: FaPencil },
-    { id: 'rectangle', icon: FaRegSquare },
-    { id: 'circle', icon: FaRegCircle },
-    { id: 'line', icon: FaMinus },
-    { id: 'arrow', icon: FaArrowRight },
-    { id: 'polygon', icon: FaDrawPolygon },
-    { id: 'text', icon: FaFont }
+    { id: 'pencil', icon: FaPencil, label: '画笔' },
+    { id: 'rectangle', icon: FaRegSquare, label: '矩形' },
+    { id: 'circle', icon: FaRegCircle, label: '圆形' },
+    { id: 'line', icon: FaMinus, label: '直线' },
+    { id: 'arrow', icon: FaArrowRight, label: '箭头' },
+    { id: 'polygon', icon: FaDrawPolygon, label: '多边形' },
+    { id: 'text', icon: FaFont, label: '文本' }
   ]
 
   const selectedToolIcon = tools.find(tool => tool.id === selectedTool)?.icon || FaPencil
 
   const handleModelDisplayClick = () => {
-    if (selectedTool === 'eraser') {
+    if (selectedTool !== 'pencil') {
       setSelectedTool('pencil')
     }
   }
@@ -54,7 +54,12 @@ function CanvasModel() {
     setColor(colors[index])
     setShowColorPicker(false)
     setSelectedBottomIndex(null)
-    setSelectedTool('pencil') // Switch to pencil when color is selected
+    // Only switch to pencil if we are in pencil mode or if we want to force switch.
+    // User wants rectangle color selection.
+    // If selectedTool is rectangle, we should NOT switch to pencil.
+    if (selectedTool !== 'rectangle') {
+        setSelectedTool('pencil')
+    }
   }
 
   const handleBottomColorClick = (color: string, index: number) => {
@@ -62,14 +67,20 @@ function CanvasModel() {
     setPickerColor(color)
     setShowColorPicker(true)
     setSelectedBottomIndex(index)
-    setSelectedTool('pencil') // Switch to pencil when color is selected
+    // Same here
+    if (selectedTool !== 'rectangle') {
+        setSelectedTool('pencil')
+    }
   }
 
   const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newColor = e.target.value
     setPickerColor(newColor)
     setColor(newColor)
-    setSelectedTool('pencil') // Switch to pencil when color is selected
+    // Same here
+    if (selectedTool !== 'rectangle') {
+        setSelectedTool('pencil')
+    }
     if (selectedBottomIndex !== null) {
       const newBottomColors = [...bottomColors]
       newBottomColors[selectedBottomIndex] = newColor
@@ -82,16 +93,17 @@ function CanvasModel() {
   return (
     <div 
       className="canvas-model-container"
-      onMouseEnter={() => setIsMenuOpen(true)}
+      onMouseEnter={() => (selectedTool === 'pencil' || selectedTool === 'rectangle') && setIsMenuOpen(true)}
       onMouseLeave={() => setIsMenuOpen(false)}
     >
       <div 
-        className={`model-display ${selectedTool !== 'eraser' ? 'active' : ''}`}
+        className={`model-display ${selectedTool !== 'pencil' ? 'switch-to-pencil' : ''}`}
         onClick={handleModelDisplayClick}
+        title={selectedTool !== 'pencil' ? "点击切换回画笔" : "画笔设置"}
       >
         {React.createElement(selectedToolIcon, { size: 24 })}
       </div>
-      <div className={`model-menu ${isMenuOpen ? 'open' : ''}`}>
+      <div className={`model-menu ${isMenuOpen && (selectedTool === 'pencil' || selectedTool === 'rectangle') ? 'open' : ''}`}>
         <div className="menu-section">
           <div className="menu-header">
             <FaPalette size={16} />
@@ -128,25 +140,47 @@ function CanvasModel() {
             </div>
           )}
         </div>
+        
+        {/* Only show line width for pencil, not rectangle (Rectangle has its own width in editor, or maybe we want to set initial width?)
+            The user only asked for "Add a menu... to select color". 
+            I will hide width for rectangle for now to strictly follow "select color". 
+            But typically initial width is also useful. 
+            However, RectangleEditor has its own width control. 
+            Let's keep it simple: Color only as requested.
+        */}
+        {selectedTool === 'pencil' && (
         <div className="menu-section">
           <div className="menu-header">
             <FaLineSize size={16} />
             <span>粗细</span>
           </div>
-          <div className="size-grid">
-            {lineSizes.map(size => (
+          <div className="width-slider-container">
+            <input
+              type="range"
+              min="1"
+              max="20"
+              step="1"
+              value={currentLineWidth}
+              onChange={(e) => setLineWidth(Number(e.target.value))}
+              className="width-slider"
+            />
+            <span className="width-value">{currentLineWidth}px</span>
+          </div>
+        </div>
+        )}
+
+        <div className="menu-separator" />
+
+        <div className="menu-section">
+          <div className="mode-grid">
+            {tools.filter(t => t.id !== selectedTool).map(tool => (
               <button
-                key={size}
-                className={`size-button ${currentLineWidth === size ? 'active' : ''}`}
-                onClick={() => {
-                  setLineWidth(size)
-                  setSelectedTool('pencil') // Switch to pencil when size is selected
-                }}
+                key={tool.id}
+                className={`mode-button ${selectedTool === tool.id ? 'active' : ''}`}
+                onClick={() => setSelectedTool(tool.id)}
+                title={tool.label}
               >
-                <div 
-                  className="size-preview" 
-                  style={{ height: `${size}px` }}
-                />
+                <tool.icon size={18} />
               </button>
             ))}
           </div>

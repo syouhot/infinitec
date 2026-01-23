@@ -5,6 +5,8 @@ import { websocketService } from '../services/websocketService'
 import { useAppStore, useToolStore, useCanvasStore } from '../store/index' // Assuming store exists for userId
 import '../styles/CanvasMain.css'
 
+import RectangleEditor from './RectangleEditor'
+
 interface Point {
   x: number
   y: number
@@ -17,7 +19,8 @@ interface Stroke {
   color: string
   width: number
   isErased: boolean
-  tool: 'pencil' | 'eraser'
+  tool: 'pencil' | 'eraser' | 'rectangle'
+  isFilled?: boolean
 }
 
 interface HistoryAction {
@@ -45,6 +48,9 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
   const [boundary, setBoundary] = useState({ minX: 0, maxX: 0, minY: 0, maxY: 0 })
   const [zoomScale, setZoomScale] = useState(CANVAS_CONFIG.DEFAULT_ZOOM_SCALE)
+  
+  const [isEditingRectangle, setIsEditingRectangle] = useState(false);
+  const [tempRect, setTempRect] = useState<{x: number, y: number, width: number, height: number} | null>(null);
 
   const strokesRef = useRef<Stroke[]>([])
   const currentStrokeRef = useRef<Stroke | null>(null)
@@ -133,17 +139,44 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         ctx.strokeStyle = 'rgba(0,0,0,1)';
         ctx.lineWidth = stroke.width;
         ctx.globalCompositeOperation = 'destination-out';
+        
+        ctx.beginPath();
+        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+        for (let i = 1; i < stroke.points.length; i++) {
+          ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        }
+        ctx.stroke();
+      } else if (stroke.tool === 'rectangle') {
+        if (stroke.points.length < 2) return;
+        ctx.globalCompositeOperation = 'source-over';
+        const p1 = stroke.points[0];
+        const p2 = stroke.points[1];
+        
+        const x = Math.min(p1.x, p2.x);
+        const y = Math.min(p1.y, p2.y);
+        const w = Math.abs(p1.x - p2.x);
+        const h = Math.abs(p1.y - p2.y);
+        
+        if (stroke.isFilled) {
+          ctx.fillStyle = stroke.color;
+          ctx.fillRect(x, y, w, h);
+        } else {
+          ctx.strokeStyle = stroke.color;
+          ctx.lineWidth = stroke.width;
+          ctx.strokeRect(x, y, w, h);
+        }
       } else {
         ctx.strokeStyle = stroke.color;
         ctx.lineWidth = stroke.width;
         ctx.globalCompositeOperation = 'source-over';
-      }
 
-      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-      for (let i = 1; i < stroke.points.length; i++) {
-        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        ctx.beginPath();
+        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+        for (let i = 1; i < stroke.points.length; i++) {
+          ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
     });
   }, []);
 
@@ -180,6 +213,24 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
          ctx.stroke();
          ctx.beginPath();
          ctx.moveTo(stroke.points[i].x, stroke.points[i].y);
+      }
+    } else if (stroke.tool === 'rectangle') {
+      if (stroke.points.length < 2) return;
+      const p1 = stroke.points[0];
+      const p2 = stroke.points[1];
+      
+      const x = Math.min(p1.x, p2.x);
+      const y = Math.min(p1.y, p2.y);
+      const w = Math.abs(p1.x - p2.x);
+      const h = Math.abs(p1.y - p2.y);
+      
+      if (stroke.isFilled) {
+        ctx.fillStyle = stroke.color;
+        ctx.fillRect(x, y, w, h);
+      } else {
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.width;
+        ctx.strokeRect(x, y, w, h);
       }
     } else {
       ctx.strokeStyle = stroke.color;
@@ -424,7 +475,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       return
     }
     if (e.button === 2) return
-    if (selectedTool !== 'pencil' && selectedTool !== 'eraser') return
+    if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle') return
     setIsDrawing(true)
 
     const windowWidth = window.innerWidth
@@ -439,6 +490,11 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     }
     
     lastPositionRef.current = startPoint
+    
+    if (selectedTool === 'rectangle') {
+      setTempRect({ x: startPoint.x, y: startPoint.y, width: 0, height: 0 });
+      return;
+    }
     
     const uid = websocketService.getUserId() || 'local';
     ensureUserLayer(uid);
@@ -484,6 +540,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     // However, to be safe and efficient, we extract needed values.
     const clientX = e.clientX;
     const clientY = e.clientY;
+    const isCtrlPressed = e.ctrlKey;
 
     if (rafIdRef.current) {
       cancelAnimationFrame(rafIdRef.current);
@@ -508,8 +565,8 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           return
         }
 
-        if (!isDrawing || !lastPositionRef.current || !currentStrokeRef.current) return
-        if (selectedTool !== 'pencil' && selectedTool !== 'eraser') return
+        if (!isDrawing || !lastPositionRef.current) return
+        if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle') return
 
         const windowWidth = window.innerWidth
         const windowHeight = window.innerHeight
@@ -520,6 +577,45 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         const currentX = windowWidth / 2 + (clientX - screenCenterX) / zoomScale
         const currentY = windowHeight / 2 + (clientY - screenCenterY) / zoomScale
         const currentPoint = { x: currentX, y: currentY }
+        
+        if (selectedTool === 'rectangle') {
+          const start = lastPositionRef.current;
+          const deltaX = currentPoint.x - start.x;
+          const deltaY = currentPoint.y - start.y;
+
+          if (isCtrlPressed) {
+            // Center-based drawing
+            // Distance from center to current mouse point determines half-width/height
+            const halfWidth = Math.abs(deltaX);
+            const halfHeight = Math.abs(deltaY);
+            
+            // Since previous logic for Ctrl was Square, we keep it: Square from Center
+            // To make it just "From Center" without Square, we would use halfWidth and halfHeight directly.
+            // But usually modifier keys add constraints. 
+            // The user asked "When holding Ctrl... draw with center point as center".
+            // The previous request was "Ctrl... draw a square".
+            // It is safest to assume they want "Square FROM Center".
+            // Let's use the max dimension for square.
+            const size = Math.max(halfWidth, halfHeight);
+            
+            setTempRect({
+              x: start.x - size,
+              y: start.y - size,
+              width: size * 2,
+              height: size * 2
+            });
+          } else {
+            setTempRect({
+              x: Math.min(start.x, currentPoint.x),
+              y: Math.min(start.y, currentPoint.y),
+              width: Math.abs(deltaX),
+              height: Math.abs(deltaY)
+            });
+          }
+          return;
+        }
+
+        if (!currentStrokeRef.current) return;
         
         const uid = websocketService.getUserId() || 'local';
 
@@ -565,6 +661,17 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   }
 
   const handleMouseUp = () => {
+    if (selectedTool === 'rectangle' && isDrawing) {
+      setIsDrawing(false);
+      lastPositionRef.current = null;
+      if (tempRect && tempRect.width > 0 && tempRect.height > 0) {
+        setIsEditingRectangle(true);
+      } else {
+        setTempRect(null);
+      }
+      return;
+    }
+
     if (isDrawing && currentStrokeRef.current) {
         websocketService.sendDrawEvent({
             type: 'stroke',
@@ -577,6 +684,46 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     dragStartRef.current = null
     currentStrokeRef.current = null
   }
+
+  const handleConfirmRectangle = useCallback((rect: { x: number, y: number, width: number, height: number }, style: { color: string, width: number, isFilled: boolean }) => {
+    const uid = websocketService.getUserId() || 'local';
+    ensureUserLayer(uid);
+
+    const newStroke: Stroke = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: uid,
+      points: [
+        { x: rect.x, y: rect.y },
+        { x: rect.x + rect.width, y: rect.y + rect.height }
+      ],
+      color: style.color,
+      width: style.width,
+      isErased: false,
+      tool: 'rectangle',
+      isFilled: style.isFilled
+    }
+
+    strokesRef.current.push(newStroke);
+    drawStroke(newStroke);
+    
+    // History
+    historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
+    redoStackRef.current = [];
+
+    // Websocket
+    websocketService.sendDrawEvent({
+      type: 'stroke',
+      stroke: newStroke
+    });
+
+    setIsEditingRectangle(false);
+    setTempRect(null);
+  }, [drawStroke, ensureUserLayer]);
+
+  const handleCancelRectangle = useCallback(() => {
+    setIsEditingRectangle(false);
+    setTempRect(null);
+  }, []);
 
   const handleMouseLeave = () => {
     if (isDrawing && currentStrokeRef.current) {
@@ -697,6 +844,51 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           transform: 'none'
         }}
       />
+
+      {/* Rectangle Editor & Temp Preview Wrapper */}
+      <div style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px)) scale(${zoomScale})`,
+          width: canvasSize.width,
+          height: canvasSize.height,
+          pointerEvents: 'none',
+          zIndex: 200
+      }}>
+         <div style={{
+             position: 'absolute',
+             left: (canvasSize.width - window.innerWidth) / 2,
+             top: (canvasSize.height - window.innerHeight) / 2,
+             width: 0,
+             height: 0,
+             overflow: 'visible'
+         }}>
+             {isEditingRectangle && tempRect && (
+              <RectangleEditor
+                initialRect={tempRect}
+                initialColor={currentColor}
+                initialWidth={currentLineWidth}
+                zoomScale={zoomScale}
+                onConfirm={handleConfirmRectangle}
+                onCancel={handleCancelRectangle}
+              />
+            )}
+            
+            {isDrawing && selectedTool === 'rectangle' && tempRect && (
+                 <div style={{
+                    position: 'absolute',
+                    left: tempRect.x,
+                    top: tempRect.y,
+                    width: tempRect.width,
+                    height: tempRect.height,
+                    border: `${currentLineWidth}px solid ${currentColor}`,
+                    pointerEvents: 'none',
+                    boxSizing: 'border-box'
+                 }} />
+            )}
+         </div>
+      </div>
     </div>
   )
 }
