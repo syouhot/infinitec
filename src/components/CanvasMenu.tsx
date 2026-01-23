@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { message } from 'antd'
-import { LuSlack } from "react-icons/lu";
+import { LuSlack, LuCopy } from "react-icons/lu";
 import { IoWarningOutline } from "react-icons/io5";
 import '../styles/CanvasMenu.css'
 import '../styles/ConfirmModal.css'
@@ -64,6 +64,16 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
     }
   }
 
+  const handleCopyRoomId = async () => {
+    if (!roomId) return;
+    try {
+      await navigator.clipboard.writeText(roomId);
+      message.success('房间ID已复制');
+    } catch (err) {
+      message.error('复制失败');
+    }
+  }
+
   const handleConfirmDelete = async () => {
     try {
       websocketService.disconnect()
@@ -105,7 +115,29 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
             {roomId && (
               <div className="room-info">
                 <span className="room-label">房间ID</span>
-                <span className="room-id">{roomId}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="room-id">{roomId}</span>
+                  <button 
+                    onClick={handleCopyRoomId}
+                    className="copy-button"
+                    title="复制房间ID"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'color 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'}
+                  >
+                    <LuCopy size={14} />
+                  </button>
+                </div>
               </div>
             )}
             <ThemeControls style={{ minWidth: '240px' }} />

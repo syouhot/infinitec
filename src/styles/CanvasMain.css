@@ -1,7 +1,7 @@
 :root {
   --eraser-cursor-color: rgba(255, 255, 255, 0.9);
-  --eraser-cursor-shadow: rgba(255, 255, 255, 0.3);
-  --grid-size: 50px;
+  --eraser-cursor-shadow: rgba(255, 255, 255, 1);
+  --grid-size: 25px;
 }
 
 .grid-background {

@@ -35,12 +35,12 @@ const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, onCreateRoom, on
     setIsCreating(true)
     try {
       const result = await createRoom({
-        password: password || undefined
+        password: password.trim() || undefined
       })
       
       message.success(`房间创建成功！房间ID: ${result.room.roomId}`)
       handleClose()
-      onCreateRoom(password, result.room.roomId)
+      onCreateRoom(password.trim(), result.room.roomId)
     } catch (error) {
       message.error(error instanceof Error ? error.message : '创建房间失败，请稍后重试')
     } finally {
@@ -57,13 +57,13 @@ const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, onCreateRoom, on
     setIsJoining(true)
     try {
       const result = await joinRoom({
-        roomId: roomId,
-        password: password || undefined
+        roomId: roomId.trim(),
+        password: password.trim() || undefined
       })
       
       message.success('加入房间成功')
       handleClose()
-      onJoinRoom(roomId, password)
+      onJoinRoom(roomId.trim(), password.trim())
     } catch (error) {
       message.error(error instanceof Error ? error.message : '加入房间失败，请稍后重试')
     } finally {
@@ -103,7 +103,7 @@ const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, onCreateRoom, on
                 <input
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value.trim())}
                   placeholder="请输入房间密码（可选）"
                   maxLength={20}
                 />
@@ -123,7 +123,7 @@ const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, onCreateRoom, on
                 <input
                   type="text"
                   value={roomId}
-                  onChange={(e) => setRoomId(e.target.value)}
+                  onChange={(e) => setRoomId(e.target.value.trim())}
                   placeholder="请输入房间ID"
                   maxLength={20}
                 />
@@ -133,7 +133,7 @@ const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, onCreateRoom, on
                 <input
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value.trim())}
                   placeholder="请输入房间密码"
                   maxLength={20}
                 />

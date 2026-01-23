@@ -1,7 +1,7 @@
 import React from 'react'
 import { FaEraser } from 'react-icons/fa6'
 import { useToolStore, useCanvasStore } from '../store'
-import { CANVAS_CONFIG } from '../config/content'
+import { CANVAS_CONFIG } from '../constants'
 import '../styles/Eraser.css'
 
 function Eraser() {

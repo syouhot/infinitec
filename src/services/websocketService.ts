@@ -5,9 +5,11 @@ interface WebSocketMessage {
   timestamp?: number
   roomId?: string
   userId?: string
+  data?: any
 }
 
 type RoomDeletedCallback = (roomId: string) => void
+type DrawEventCallback = (data: any) => void
 
 class WebSocketService {
   private ws: WebSocket | null = null
@@ -18,9 +20,26 @@ class WebSocketService {
   private reconnectDelay = 3000
   private heartbeatInterval: NodeJS.Timeout | null = null
   private onRoomDeletedCallback: RoomDeletedCallback | null = null
+  private onDrawEventCallback: DrawEventCallback | null = null
 
   setRoomDeletedCallback(callback: RoomDeletedCallback): void {
     this.onRoomDeletedCallback = callback
+  }
+
+  setDrawEventCallback(callback: DrawEventCallback): void {
+    this.onDrawEventCallback = callback
+  }
+
+  sendDrawEvent(data: any): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.userId) {
+      const message: WebSocketMessage = {
+        type: 'draw_event',
+        roomId: this.roomId,
+        userId: this.userId,
+        data
+      }
+      this.ws.send(JSON.stringify(message))
+    }
   }
 
   connect(userId: string, roomId: string): Promise<void> {
@@ -57,6 +76,10 @@ class WebSocketService {
             
             if (message.type === 'joined') {
               console.log(`成功加入房间 ${message.roomId}`)
+            } else if (message.type === 'draw_event') {
+              if (this.onDrawEventCallback) {
+                this.onDrawEventCallback(message.data)
+              }
             } else if (message.type === 'heartbeat') {
               this.handleHeartbeat(message)
             } else if (message.type === 'heartbeat_ack') {
@@ -158,6 +181,10 @@ class WebSocketService {
 
   isConnected(): boolean {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN
+  }
+
+  getUserId(): string | null {
+    return this.userId
   }
 }
 

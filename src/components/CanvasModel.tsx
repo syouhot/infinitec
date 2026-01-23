@@ -15,18 +15,13 @@ import {
 } from 'react-icons/fa6'
 import { useToolStore, useCanvasStore } from '../store'
 import '../styles/CanvasModel.css'
+import { colors, diyColors } from '../constants'
 
 function CanvasModel() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [selectedBottomIndex, setSelectedBottomIndex] = useState<number | null>(null)
-  const [bottomColors, setBottomColors] = useState([
-    '#ff00ff',
-    '#00ffff',
-    '#ffa500',
-    '#800080',
-    '#808080'
-  ])
+  const [bottomColors, setBottomColors] = useState(diyColors)
   const currentColor = useCanvasStore((state) => state.currentColor)
   const [pickerColor, setPickerColor] = useState(currentColor)
   const selectedTool = useToolStore((state) => state.selectedTool)
@@ -53,20 +48,13 @@ function CanvasModel() {
     }
   }
 
-  const colors = [
-    '#ffffff',
-    '#ff0000',
-    '#00ff00',
-    '#0000ff',
-    '#ffff00'
-  ]
-
   const topColors = colors
 
-  const handleTopColorClick = (color: string) => {
-    setColor(color)
+  const handleTopColorClick = (index: number) => {
+    setColor(colors[index])
     setShowColorPicker(false)
     setSelectedBottomIndex(null)
+    setSelectedTool('pencil') // Switch to pencil when color is selected
   }
 
   const handleBottomColorClick = (color: string, index: number) => {
@@ -74,12 +62,14 @@ function CanvasModel() {
     setPickerColor(color)
     setShowColorPicker(true)
     setSelectedBottomIndex(index)
+    setSelectedTool('pencil') // Switch to pencil when color is selected
   }
 
   const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newColor = e.target.value
     setPickerColor(newColor)
     setColor(newColor)
+    setSelectedTool('pencil') // Switch to pencil when color is selected
     if (selectedBottomIndex !== null) {
       const newBottomColors = [...bottomColors]
       newBottomColors[selectedBottomIndex] = newColor
@@ -87,7 +77,7 @@ function CanvasModel() {
     }
   }
 
-  const lineSizes = [1, 2, 3, 4, 5, 6, 8, 10]
+  const lineSizes = [0.5, 1, 2, 3, 4, 5, 6, 10]
 
   return (
     <div 
@@ -108,11 +98,11 @@ function CanvasModel() {
             <span>颜色</span>
           </div>
           <div className="color-grid color-grid-top">
-            {topColors.map(color => (
+            {topColors.map((color,index) => (
               <button
-                key={color}
+                key={index}
                 className={`color-button color-button-circle ${currentColor === color ? 'active' : ''}`}
-                onClick={() => handleTopColorClick(color)}
+                onClick={() => handleTopColorClick(index)}
                 style={{ backgroundColor: color }}
               />
             ))}
@@ -148,7 +138,10 @@ function CanvasModel() {
               <button
                 key={size}
                 className={`size-button ${currentLineWidth === size ? 'active' : ''}`}
-                onClick={() => setLineWidth(size)}
+                onClick={() => {
+                  setLineWidth(size)
+                  setSelectedTool('pencil') // Switch to pencil when size is selected
+                }}
               >
                 <div 
                   className="size-preview" 
