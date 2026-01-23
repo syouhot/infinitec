@@ -1,17 +1,17 @@
 import { useState } from 'react'
 import React from 'react'
-import { 
-  FaPencil, 
-  FaRegSquare, 
-  FaRegCircle, 
-  FaMinus, 
-  FaArrowRight, 
-  FaDrawPolygon, 
-  FaFont 
+import {
+  FaPencil,
+  FaRegSquare,
+  FaRegCircle,
+  FaMinus,
+  FaArrowRight,
+  FaDrawPolygon,
+  FaFont
 } from 'react-icons/fa6'
-import { 
-  FaPalette, 
-  FaMinus as FaLineSize 
+import {
+  FaPalette,
+  FaMinus as FaLineSize
 } from 'react-icons/fa6'
 import { useToolStore, useCanvasStore } from '../store'
 import '../styles/CanvasModel.css'
@@ -29,6 +29,8 @@ function CanvasModel() {
   const currentLineWidth = useCanvasStore((state) => state.currentLineWidth)
   const setColor = useCanvasStore((state) => state.setColor)
   const setLineWidth = useCanvasStore((state) => state.setLineWidth)
+  const currentLineDash = useCanvasStore((state) => state.currentLineDash)
+  const setLineDash = useCanvasStore((state) => state.setLineDash)
 
   const tools = [
     { id: 'pencil', icon: FaPencil, label: '画笔' },
@@ -48,6 +50,13 @@ function CanvasModel() {
     }
   }
 
+  const lineStyles = [
+    { id: 'solid', dash: [], label: '实线' },
+    { id: 'dashed1', dash: [8, 8], label: '虚线1' },
+    { id: 'dashed2', dash: [20, 20], label: '虚线2' },
+    { id: 'dashed3', dash: [2, 6], label: '虚线3' }
+  ]
+
   const topColors = colors
 
   const handleTopColorClick = (index: number) => {
@@ -57,8 +66,8 @@ function CanvasModel() {
     // Only switch to pencil if we are in pencil mode or if we want to force switch.
     // User wants rectangle color selection.
     // If selectedTool is rectangle, we should NOT switch to pencil.
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle') {
-        setSelectedTool('pencil')
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line') {
+      setSelectedTool('pencil')
     }
   }
 
@@ -68,8 +77,8 @@ function CanvasModel() {
     setShowColorPicker(true)
     setSelectedBottomIndex(index)
     // Same here
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle') {
-        setSelectedTool('pencil')
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line') {
+      setSelectedTool('pencil')
     }
   }
 
@@ -78,8 +87,8 @@ function CanvasModel() {
     setPickerColor(newColor)
     setColor(newColor)
     // Same here
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle') {
-        setSelectedTool('pencil')
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line') {
+      setSelectedTool('pencil')
     }
     if (selectedBottomIndex !== null) {
       const newBottomColors = [...bottomColors]
@@ -91,26 +100,26 @@ function CanvasModel() {
   const lineSizes = [0.5, 1, 2, 3, 4, 5, 6, 10]
 
   return (
-    <div 
+    <div
       className="canvas-model-container"
-      onMouseEnter={() => (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle') && setIsMenuOpen(true)}
+      onMouseEnter={() => (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line') && setIsMenuOpen(true)}
       onMouseLeave={() => setIsMenuOpen(false)}
     >
-      <div 
+      <div
         className={`model-display ${selectedTool !== 'pencil' ? 'switch-to-pencil' : ''}`}
         onClick={handleModelDisplayClick}
         title={selectedTool !== 'pencil' ? "点击切换回画笔" : "画笔设置"}
       >
         {React.createElement(selectedToolIcon, { size: 24 })}
       </div>
-      <div className={`model-menu ${isMenuOpen && (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle') ? 'open' : ''}`}>
+      <div className={`model-menu ${isMenuOpen && (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line') ? 'open' : ''}`}>
         <div className="menu-section">
           <div className="menu-header">
             <FaPalette size={16} />
             <span>颜色</span>
           </div>
           <div className="color-grid color-grid-top">
-            {topColors.map((color,index) => (
+            {topColors.map((color, index) => (
               <button
                 key={index}
                 className={`color-button color-button-circle ${currentColor === color ? 'active' : ''}`}
@@ -140,7 +149,51 @@ function CanvasModel() {
             </div>
           )}
         </div>
-        
+
+        {/* Line Style Section */}
+        {selectedTool === 'line' && (
+          <div className="menu-section">
+            <div className="menu-header">
+              <FaMinus size={16} />
+              <span>样式</span>
+            </div>
+            <div className="style-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+              {lineStyles.map((style) => {
+                const isSelected = JSON.stringify(currentLineDash) === JSON.stringify(style.dash);
+                return (
+                  <button
+                    key={style.id}
+                    className={`style-button ${isSelected ? 'active' : ''}`}
+                    onClick={() => setLineDash(style.dash)}
+                    title={style.label}
+                    style={{
+                      height: '32px',
+                      border: isSelected ? '2px solid #1a73e8' : '1px solid #ddd',
+                      borderRadius: '6px',
+                      background: 'white',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 4px'
+                    }}
+                  >
+                    <svg width="100%" height="4">
+                      <line
+                        x1="0" y1="2" x2="100%" y2="2"
+                        stroke="#333"
+                        strokeWidth="2"
+                        strokeDasharray={style.dash.map(d => d / 2).join(',')} // Scale down for small button
+                      />
+                    </svg>
+
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Only show line width for pencil, not rectangle (Rectangle has its own width in editor, or maybe we want to set initial width?)
             The user only asked for "Add a menu... to select color". 
             I will hide width for rectangle for now to strictly follow "select color". 
@@ -148,7 +201,7 @@ function CanvasModel() {
             However, RectangleEditor has its own width control. 
             Let's keep it simple: Color only as requested.
         */}
-        
+
         <div className="menu-section">
           <div className="menu-header">
             <FaLineSize size={16} />

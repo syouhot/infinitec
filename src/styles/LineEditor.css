@@ -1,104 +1,86 @@
 :root {
   /* Default (Light) Theme Variables -> Now Dark Style by Default */
-  --rect-toolbar-bg: rgba(30, 30, 40, 0.95);
-  --rect-toolbar-border: rgba(255, 255, 255, 0.2);
-  --rect-toolbar-text: rgba(255, 255, 255, 0.8);
-  --rect-toolbar-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --rect-btn-hover: rgba(255, 255, 255, 0.2);
-  --rect-btn-active: rgba(100, 150, 255, 0.3);
-  --rect-btn-active-text: rgba(100, 200, 255, 1);
-  --rect-handle-bg: #1e1e28;
-  --rect-handle-border: #6496ff;
-  --rect-popover-bg: #2d2d3a;
+  --line-toolbar-bg: rgba(30, 30, 40, 0.95);
+  --line-toolbar-border: rgba(255, 255, 255, 0.2);
+  --line-toolbar-text: rgba(255, 255, 255, 0.8);
+  --line-toolbar-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --line-btn-hover: rgba(255, 255, 255, 0.2);
+  --line-btn-active: rgba(100, 150, 255, 0.3);
+  --line-btn-active-text: rgba(100, 200, 255, 1);
+  --line-handle-bg: #1e1e28;
+  --line-handle-border: #6496ff;
+  --line-popover-bg: #2d2d3a;
   
   /* Slider Colors for Dark Theme (High Contrast) */
-  --rect-slider-track: rgba(255, 255, 255, 0.2);
-  --rect-slider-thumb: #fff;
-  --rect-slider-thumb-hover: #1a73e8;
+  --line-slider-track: rgba(255, 255, 255, 0.2);
+  --line-slider-thumb: #fff;
+  --line-slider-thumb-hover: #1a73e8;
 }
 
 /* Dark Theme Overrides -> Now Light Style */
 body.canvas-bg-dark {
-  --rect-toolbar-bg: rgba(255, 255, 255, 0.95);
-  --rect-toolbar-border: rgba(0, 0, 0, 0.1);
-  --rect-toolbar-text: #333;
-  --rect-toolbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  --rect-btn-hover: rgba(0, 0, 0, 0.05);
-  --rect-btn-active: rgba(26, 115, 232, 0.1);
-  --rect-btn-active-text: #1a73e8;
-  --rect-handle-bg: #fff;
-  --rect-handle-border: #1a73e8;
-  --rect-popover-bg: #fff;
+  --line-toolbar-bg: rgba(255, 255, 255, 0.95);
+  --line-toolbar-border: rgba(0, 0, 0, 0.1);
+  --line-toolbar-text: #333;
+  --line-toolbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --line-btn-hover: rgba(0, 0, 0, 0.05);
+  --line-btn-active: rgba(26, 115, 232, 0.1);
+  --line-btn-active-text: #1a73e8;
+  --line-handle-bg: #fff;
+  --line-handle-border: #1a73e8;
+  --line-popover-bg: #fff;
   
   /* Slider Colors for Light Theme (High Contrast) */
-  --rect-slider-track: rgba(0, 0, 0, 0.3);
-  --rect-slider-thumb: #1a73e8;
-  --rect-slider-thumb-hover: #1557b0;
-}
-
-.rectangle-editor-container {
-  position: absolute;
-  pointer-events: all;
-  touch-action: none;
-}
-
-.rectangle-shape {
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  position: relative;
+  --line-slider-track: rgba(0, 0, 0, 0.3);
+  --line-slider-thumb: #1a73e8;
+  --line-slider-thumb-hover: #1557b0;
 }
 
 .resize-handle {
   position: absolute;
   width: 10px;
   height: 10px;
-  background-color: var(--rect-handle-bg);
-  border: 1px solid var(--rect-handle-border);
+  background-color: var(--line-handle-bg);
+  border: 1px solid var(--line-handle-border);
   border-radius: 50%;
   z-index: 10;
   transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  cursor: pointer; /* Changed from crosshair to pointer for better feedback */
+  pointer-events: auto;
 }
 
 .resize-handle:hover {
-  background-color: var(--rect-btn-active-text);
+  background-color: var(--line-btn-active-text);
   border-color: #fff;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
   z-index: 100;
 }
 
-.handle-nw { top: -5px; left: -5px; cursor: nw-resize; }
-.handle-ne { top: -5px; right: -5px; cursor: ne-resize; }
-.handle-sw { bottom: -5px; left: -5px; cursor: sw-resize; }
-.handle-se { bottom: -5px; right: -5px; cursor: se-resize; }
-.handle-n { top: -5px; left: 50%; transform: translateX(-50%); cursor: n-resize; }
-.handle-s { bottom: -5px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
-.handle-w { left: -5px; top: 50%; transform: translateY(-50%); cursor: w-resize; }
-.handle-e { right: -5px; top: 50%; transform: translateY(-50%); cursor: e-resize; }
-
-.rectangle-toolbar {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+/* Line toolbar styles - Copied and adapted from RectangleEditor.css */
+.line-toolbar {
   display: flex;
   gap: 8px;
-  background-color: var(--rect-toolbar-bg);
+  background-color: var(--line-toolbar-bg);
   padding: 8px;
   border-radius: 8px;
-  border: 1px solid var(--rect-toolbar-border);
-  box-shadow: var(--rect-toolbar-shadow);
-  margin-bottom: 10px;
+  border: 1px solid var(--line-toolbar-border);
+  box-shadow: var(--line-toolbar-shadow);
   z-index: 20;
   /* Ensure consistent frosted glass effect */
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   transition: background-color 0.3s, border-color 0.3s;
+  /* Positioned absolutely within wrapper */
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
 }
 
 .toolbar-separator {
   width: 1px;
-  background-color: var(--rect-toolbar-border);
+  background-color: var(--line-toolbar-border);
   margin: 0 4px;
 }
 
@@ -112,20 +94,20 @@ body.canvas-bg-dark {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--rect-toolbar-text);
+  color: var(--line-toolbar-text);
   transition: all 0.2s;
   position: relative;
 }
 
 .toolbar-btn:hover {
-  background-color: var(--rect-btn-hover);
-  border-color: var(--rect-toolbar-border);
+  background-color: var(--line-btn-hover);
+  border-color: var(--line-toolbar-border);
 }
 
 .toolbar-btn.active {
-  background-color: var(--rect-btn-active);
-  color: var(--rect-btn-active-text);
-  border-color: var(--rect-btn-active-text);
+  background-color: var(--line-btn-active);
+  color: var(--line-btn-active-text);
+  border-color: var(--line-btn-active-text);
 }
 
 .toolbar-btn.primary {
@@ -158,11 +140,11 @@ body.canvas-bg-dark .toolbar-btn.danger {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--rect-toolbar-bg);
+  background: var(--line-toolbar-bg);
   padding: 12px;
   border-radius: 8px;
-  box-shadow: var(--rect-toolbar-shadow);
-  border: 1px solid var(--rect-toolbar-border);
+  box-shadow: var(--line-toolbar-shadow);
+  border: 1px solid var(--line-toolbar-border);
   margin-top: 8px;
   display: flex;
   flex-direction: column;
@@ -194,7 +176,7 @@ body.canvas-bg-dark .toolbar-btn.danger {
 }
 
 .color-circle.selected {
-  border-color: var(--rect-btn-active-text);
+  border-color: var(--line-btn-active-text);
 }
 
 .width-slider-popover {
@@ -202,11 +184,11 @@ body.canvas-bg-dark .toolbar-btn.danger {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--rect-toolbar-bg) ;
+  background: var(--line-toolbar-bg) ;
   padding: 12px;
   border-radius: 8px;
-  box-shadow: var(--rect-toolbar-shadow);
-  border: 1px solid var(--rect-toolbar-border);
+  box-shadow: var(--line-toolbar-shadow);
+  border: 1px solid var(--line-toolbar-border);
   margin-top: 8px;
   width: 200px;
   z-index: 30;
@@ -223,8 +205,7 @@ body.canvas-bg-dark .toolbar-btn.danger {
 .width-slider {
   flex: 1;
   cursor: pointer;
-  /* Use new slider variables */
-  background: var(--rect-slider-track) !important;
+  background: var(--line-slider-track) !important;
   -webkit-appearance: none;
   height: 4px;
   border-radius: 2px;
@@ -234,7 +215,7 @@ body.canvas-bg-dark .toolbar-btn.danger {
   -webkit-appearance: none;
   width: 16px;
   height: 16px;
-  background: var(--rect-slider-thumb);
+  background: var(--line-slider-thumb);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -243,12 +224,12 @@ body.canvas-bg-dark .toolbar-btn.danger {
 
 .width-slider::-webkit-slider-thumb:hover {
   transform: scale(1.1);
-  background: var(--rect-slider-thumb-hover);
+  background: var(--line-slider-thumb-hover);
 }
 
 .width-value {
   font-size: 12px;
-  color: var(--rect-toolbar-text) !important;
+  color: var(--line-toolbar-text) !important;
   min-width: 20px;
   text-align: right;
 }

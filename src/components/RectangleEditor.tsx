@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { FaCheck, FaArrowsUpDownLeftRight, FaPalette, FaRegSquare, FaSquare, FaGripLines, FaXmark } from 'react-icons/fa6';
 import '../styles/RectangleEditor.css';
 
@@ -18,16 +18,20 @@ interface RectangleEditorProps {
   onCancel?: () => void;
 }
 
+export interface RectangleEditorRef {
+  confirm: () => void;
+}
+
 const DEFAULT_COLORS = ['#FFFFFF', '#000000', '#0000FF', '#FF0000'];
 
-const RectangleEditor: React.FC<RectangleEditorProps> = ({
+const RectangleEditor = forwardRef<RectangleEditorRef, RectangleEditorProps>(({
   initialRect,
   initialColor,
   initialWidth,
   zoomScale,
   onConfirm,
   onCancel
-}) => {
+}, ref) => {
   const [rect, setRect] = useState<Rect>(initialRect);
   const [color, setColor] = useState(DEFAULT_COLORS[0]);
   const [width, setWidth] = useState(initialWidth);
@@ -47,6 +51,10 @@ const RectangleEditor: React.FC<RectangleEditorProps> = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showWidthSlider, setShowWidthSlider] = useState(false);
   const [customColor, setCustomColor] = useState('#FFFFFF');
+
+  useImperativeHandle(ref, () => ({
+    confirm: handleConfirm
+  }));
 
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -277,6 +285,6 @@ const RectangleEditor: React.FC<RectangleEditorProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default RectangleEditor;

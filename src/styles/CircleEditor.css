@@ -58,7 +58,14 @@ body.canvas-bg-dark {
   border: 1px solid var(--circle-handle-border);
   border-radius: 50%;
   z-index: 10;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.resize-handle:hover {
+  background-color: var(--circle-btn-active-text);
+  border-color: #fff;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  z-index: 100;
 }
 
 .handle-nw { top: -5px; left: -5px; cursor: nw-resize; }

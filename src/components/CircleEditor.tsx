@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { FaCheck, FaArrowsUpDownLeftRight, FaPalette, FaRegCircle, FaCircle, FaGripLines, FaXmark } from 'react-icons/fa6';
 import '../styles/CircleEditor.css';
 
@@ -18,16 +18,20 @@ interface CircleEditorProps {
   onCancel?: () => void;
 }
 
+export interface CircleEditorRef {
+  confirm: () => void;
+}
+
 const DEFAULT_COLORS = ['#FFFFFF', '#000000', '#0000FF', '#FF0000'];
 
-const CircleEditor: React.FC<CircleEditorProps> = ({
+const CircleEditor = forwardRef<CircleEditorRef, CircleEditorProps>(({
   initialRect,
   initialColor,
   initialWidth,
   zoomScale,
   onConfirm,
   onCancel
-}) => {
+}, ref) => {
   const [rect, setRect] = useState<Rect>(initialRect);
   const [color, setColor] = useState(DEFAULT_COLORS[0]);
   const [width, setWidth] = useState(initialWidth);
@@ -43,6 +47,10 @@ const CircleEditor: React.FC<CircleEditorProps> = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showWidthSlider, setShowWidthSlider] = useState(false);
   const [customColor, setCustomColor] = useState('#FFFFFF');
+
+  useImperativeHandle(ref, () => ({
+    confirm: handleConfirm
+  }));
 
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -264,6 +272,6 @@ const CircleEditor: React.FC<CircleEditorProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default CircleEditor;

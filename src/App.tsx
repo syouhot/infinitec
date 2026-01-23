@@ -18,6 +18,7 @@ function App() {
   const selectedTool = useToolStore((state) => state.selectedTool)
   const currentColor = useCanvasStore((state) => state.currentColor)
   const currentLineWidth = useCanvasStore((state) => state.currentLineWidth)
+  const currentLineDash = useCanvasStore((state) => state.currentLineDash)
   const eraserSize = useCanvasStore((state) => state.eraserSize)
 
   const handleDoubleClick = () => {
@@ -42,6 +43,7 @@ function App() {
                 selectedTool={selectedTool} 
                 currentColor={currentColor}
                 currentLineWidth={currentLineWidth}
+                currentLineDash={currentLineDash}
                 eraserSize={eraserSize}
               />
               <CanvasMenu onBack={handleExitDrawingMode} />
