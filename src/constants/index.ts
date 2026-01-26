@@ -27,3 +27,5 @@ export const CANVAS_CONFIG = {
   DEFAULT_ZOOM_SCALE: 2,
   ZOOM_STEP: 0.1
 } as const
+
+export const FONT_SIZES = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 36, 40, 44, 48, 50];

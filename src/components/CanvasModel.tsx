@@ -11,11 +11,12 @@ import {
 } from 'react-icons/fa6'
 import {
   FaPalette,
-  FaMinus as FaLineSize
+  FaMinus as FaLineSize,
+  FaTextHeight
 } from 'react-icons/fa6'
 import { useToolStore, useCanvasStore } from '../store'
 import '../styles/CanvasModel.css'
-import { colors, diyColors } from '../constants'
+import { colors, diyColors, FONT_SIZES } from '../constants'
 
 function CanvasModel() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -27,8 +28,10 @@ function CanvasModel() {
   const selectedTool = useToolStore((state) => state.selectedTool)
   const setSelectedTool = useToolStore((state) => state.setSelectedTool)
   const currentLineWidth = useCanvasStore((state) => state.currentLineWidth)
+  const currentFontSize = useCanvasStore((state) => state.currentFontSize)
   const setColor = useCanvasStore((state) => state.setColor)
   const setLineWidth = useCanvasStore((state) => state.setLineWidth)
+  const setFontSize = useCanvasStore((state) => state.setFontSize)
   const currentLineDash = useCanvasStore((state) => state.currentLineDash)
   const setLineDash = useCanvasStore((state) => state.setLineDash)
   const currentArrowType = useCanvasStore((state) => state.currentArrowType)
@@ -68,7 +71,7 @@ function CanvasModel() {
     // 只有在铅笔模式或我们想要强制切换时才切换到铅笔
     // 用户想要矩形颜色选择
     // 如果选中的工具是矩形，我们不应该切换到铅笔
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon' && selectedTool !== 'text') {
       setSelectedTool('pencil')
     }
   }
@@ -79,7 +82,7 @@ function CanvasModel() {
     setShowColorPicker(true)
     setSelectedBottomIndex(index)
     // 这里相同
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon' && selectedTool !== 'text') {
       setSelectedTool('pencil')
     }
   }
@@ -89,7 +92,7 @@ function CanvasModel() {
     setPickerColor(newColor)
     setColor(newColor)
     // 这里也一样
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon' && selectedTool !== 'text') {
       setSelectedTool('pencil')
     }
     if (selectedBottomIndex !== null) {
@@ -104,7 +107,7 @@ function CanvasModel() {
   return (
     <div
       className="canvas-model-container"
-      onMouseEnter={() => (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line' || selectedTool === 'arrow' || selectedTool === 'polygon') && setIsMenuOpen(true)}
+      onMouseEnter={() => (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line' || selectedTool === 'arrow' || selectedTool === 'polygon' || selectedTool === 'text') && setIsMenuOpen(true)}
       onMouseLeave={() => setIsMenuOpen(false)}
     >
       <div
@@ -114,7 +117,7 @@ function CanvasModel() {
       >
         {React.createElement(selectedToolIcon, { size: 24 })}
       </div>
-      <div className={`model-menu ${isMenuOpen && (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line' || selectedTool === 'arrow' || selectedTool === 'polygon') ? 'open' : ''}`}>
+      <div className={`model-menu ${isMenuOpen && (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line' || selectedTool === 'arrow' || selectedTool === 'polygon' || selectedTool === 'text') ? 'open' : ''}`}>
         <div className="menu-section">
           <div className="menu-header">
             <FaPalette size={16} />
@@ -265,24 +268,52 @@ function CanvasModel() {
             Let's keep it simple: Color only as requested.
         */}
 
-        <div className="menu-section">
-          <div className="menu-header">
-            <FaLineSize size={16} />
-            <span>粗细</span>
+        {/* 粗细/字号选择 */}
+        {selectedTool === 'text' ? (
+          <div className="menu-section">
+            <div className="menu-header">
+              <FaTextHeight size={16} />
+              <span>字号</span>
+            </div>
+            <div className="width-slider-container">
+              <select
+                value={currentFontSize}
+                onChange={(e) => setFontSize(Number(e.target.value))}
+                style={{ 
+                  width: '100%', 
+                  padding: '4px', 
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                  backgroundColor: '#fff',
+                  color: '#333'
+                }}
+              >
+                {FONT_SIZES.map(size => (
+                  <option key={size} value={size}>{size}px</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="width-slider-container">
-            <input
-              type="range"
-              min="1"
-              max="20"
-              step="1"
-              value={currentLineWidth}
-              onChange={(e) => setLineWidth(Number(e.target.value))}
-              className="width-slider"
-            />
-            <span className="width-value">{currentLineWidth}px</span>
+        ) : (
+          <div className="menu-section">
+            <div className="menu-header">
+              <FaLineSize size={16} />
+              <span>粗细</span>
+            </div>
+            <div className="width-slider-container">
+              <input
+                type="range"
+                min="1"
+                max="20"
+                step="1"
+                value={currentLineWidth}
+                onChange={(e) => setLineWidth(Number(e.target.value))}
+                className="width-slider"
+              />
+              <span className="width-value">{currentLineWidth}px</span>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="menu-separator" />
 

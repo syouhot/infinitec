@@ -10,11 +10,13 @@ import CircleEditor from './CircleEditor'
 import LineEditor from './LineEditor'
 import ArrowEditor from './ArrowEditor'
 import PolygonEditor from './PolygonEditor'
+import TextEditor from './TextEditor'
 import type { RectangleEditorRef } from './RectangleEditor'
 import type { LineEditorRef } from './LineEditor'
 import type { CircleEditorRef } from './CircleEditor'
 import type { ArrowEditorRef } from './ArrowEditor'
 import type { PolygonEditorRef } from './PolygonEditor'
+import type { TextEditorRef, TextStyle } from './TextEditor'
 interface Point {
   x: number
   y: number
@@ -27,10 +29,22 @@ interface Stroke {
   color: string
   width: number
   isErased: boolean
-  tool: 'pencil' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'polygon'
+  tool: 'pencil' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'polygon' | 'text'
   isFilled?: boolean
   lineDash?: number[]
   arrowType?: 'standard' | 'double' | 'solid' | 'solid-double'
+  // Text Properties
+  text?: string
+  fontSize?: number
+  fontFamily?: string
+  isBold?: boolean
+  isItalic?: boolean
+  isUnderline?: boolean
+  isStrikethrough?: boolean
+  textAlign?: 'left' | 'center' | 'right'
+  backgroundColor?: string
+  textWidth?: number
+  textHeight?: number
 }
 
 interface HistoryAction {
@@ -50,6 +64,7 @@ interface CanvasMainProps {
 
 const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const { selectedTool, currentColor, currentLineWidth, currentLineDash = [], currentArrowType = 'standard', eraserSize, onZoomChange } = props;
+  const currentFontSize = useCanvasStore((state) => state.currentFontSize)
   const [isDrawing, setIsDrawing] = useState(false)
   const lastPositionRef = useRef<{ x: number, y: number } | null>(null)
   const eraserCursorRef = useRef<HTMLDivElement>(null)
@@ -66,12 +81,14 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const [isEditingLine, setIsEditingLine] = useState(false);
   const [isEditingArrow, setIsEditingArrow] = useState(false);
   const [isEditingPolygon, setIsEditingPolygon] = useState(false);
+  const [isEditingText, setIsEditingText] = useState(false);
   const [tempRect, setTempRect] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
   const [tempLine, setTempLine] = useState<{ p1: Point, p2: Point } | null>(null);
   const [tempArrow, setTempArrow] = useState<{ p1: Point, p2: Point } | null>(null);
   const [tempPolygonPoints, setTempPolygonPoints] = useState<Point[] | null>(null);
   const [lineStartPoint, setLineStartPoint] = useState<Point | null>(null);
   const [arrowStartPoint, setArrowStartPoint] = useState<Point | null>(null);
+  const [tempTextPosition, setTempTextPosition] = useState<Point | null>(null);
 
   // Polygon Drawing State
   const [drawingPolygonPoints, setDrawingPolygonPoints] = useState<Point[]>([]);
@@ -88,6 +105,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const lineEditorRef = useRef<LineEditorRef>(null);
   const arrowEditorRef = useRef<ArrowEditorRef>(null);
   const polygonEditorRef = useRef<PolygonEditorRef>(null);
+  const textEditorRef = useRef<TextEditorRef>(null);
 
   // 工具更改时自动确认
   useEffect(() => {
@@ -106,7 +124,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     if (isEditingPolygon && selectedTool !== 'polygon') {
       polygonEditorRef.current?.confirm();
     }
-  }, [selectedTool, isEditingRectangle, isEditingCircle, isEditingLine, isEditingArrow, isEditingPolygon]);
+    if (isEditingText && selectedTool !== 'text') {
+      textEditorRef.current?.confirm();
+    }
+  }, [selectedTool, isEditingRectangle, isEditingCircle, isEditingLine, isEditingArrow, isEditingPolygon, isEditingText]);
 
   // 多画布架构状态
   const [activeUserIds, setActiveUserIds] = useState<Set<string>>(new Set(['local']));
@@ -150,6 +171,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const dpr = window.devicePixelRatio || 1;
 
     // 清除此用户的画布
     ctx.save();
@@ -171,10 +193,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
-    const paddingX = (canvas.width - windowWidth) / 2;
-    const paddingY = (canvas.height - windowHeight) / 2;
+    const paddingX = (canvas.width / dpr - windowWidth) / 2;
+    const paddingY = (canvas.height / dpr - windowHeight) / 2;
 
-    ctx.setTransform(1, 0, 0, 1, paddingX, paddingY);
+    ctx.setTransform(dpr, 0, 0, dpr, paddingX * dpr, paddingY * dpr);
 
     strokesRef.current.forEach(stroke => {
       if (stroke.userId !== uid) return;
@@ -250,25 +272,98 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         ctx.stroke();
         ctx.setLineDash([]);
       } else if (stroke.tool === 'polygon') {
-         if (stroke.points.length < 3) return;
-         
-         ctx.beginPath();
-         ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-         for (let i = 1; i < stroke.points.length; i++) {
-           ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
-         }
-         ctx.closePath();
-         
-         if (stroke.isFilled) {
-           ctx.fillStyle = stroke.color;
-           ctx.fill();
-         } else {
-           ctx.strokeStyle = stroke.color;
-           ctx.lineWidth = stroke.width;
-           ctx.globalCompositeOperation = 'source-over';
-           ctx.stroke();
-         }
-       } else {
+        if (stroke.points.length < 3) return;
+
+        ctx.beginPath();
+        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+        for (let i = 1; i < stroke.points.length; i++) {
+          ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        }
+        ctx.closePath();
+
+        if (stroke.isFilled) {
+          ctx.fillStyle = stroke.color;
+          ctx.fill();
+        } else {
+          ctx.strokeStyle = stroke.color;
+          ctx.lineWidth = stroke.width;
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.stroke();
+        }
+      } else if (stroke.tool === 'text') {
+        if (!stroke.text || !stroke.points[0]) return;
+
+        const containerX = stroke.points[0].x;
+        const containerY = stroke.points[0].y;
+        const containerWidth = stroke.textWidth || 0;
+        const containerHeight = stroke.textHeight || 0;
+        const fontSize = stroke.fontSize || 20;
+
+        // Background
+        if (stroke.backgroundColor && stroke.backgroundColor !== 'transparent') {
+          ctx.fillStyle = stroke.backgroundColor;
+          ctx.fillRect(containerX, containerY, containerWidth, containerHeight);
+        }
+
+        // Calculate offsets to match TextEditor visual appearance
+        // TextEditor has 1px border and 1.2 lineHeight
+        const borderOffset = 1;
+        const lineHeight = fontSize * 1.2;
+        
+        // Revert to 'top' baseline but adjust vertical offset carefully
+        // Canvas 'top' baseline aligns to the em-square top
+        // We add a small adjustment factor to match DOM rendering better
+        const verticalAdjustment = fontSize * 0.1; // Empirical adjustment
+        const verticalOffset = (lineHeight - fontSize) / 2 + verticalAdjustment;
+
+        const x = containerX + borderOffset;
+        const y = containerY + borderOffset + verticalOffset;
+        
+        // Use container width for text wrapping, minus border padding
+        const width = containerWidth - (borderOffset * 2);
+
+        ctx.fillStyle = stroke.color;
+        // Use standard CSS font syntax: font-style font-weight font-size font-family
+        // Example: "italic bold 20px Arial"
+        const fontStyle = stroke.isItalic ? 'italic' : 'normal';
+        const fontWeight = stroke.isBold ? 'bold' : 'normal';
+        // Quote the font family to handle names with spaces safely
+        ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px "${stroke.fontFamily}"`;
+        ctx.textBaseline = 'top';
+
+        const wrappedLines: string[] = [];
+
+        // Auto-wrap text based on width
+        stroke.text.split('\n').forEach(paragraph => {
+          let currentLine = '';
+          for (let i = 0; i < paragraph.length; i++) {
+            const char = paragraph[i];
+            const testLine = currentLine + char;
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > width && i > 0) {
+              wrappedLines.push(currentLine);
+              currentLine = char;
+            } else {
+              currentLine = testLine;
+            }
+          }
+          wrappedLines.push(currentLine);
+        });
+
+        wrappedLines.forEach((line, index) => {
+          drawTextLine(
+            ctx,
+            line,
+            x,
+            y + index * lineHeight,
+            width,
+            stroke.textAlign,
+            stroke.isUnderline,
+            stroke.isStrikethrough,
+            fontSize
+          );
+        });
+      } else {
         ctx.strokeStyle = stroke.color;
         ctx.lineWidth = stroke.width;
         ctx.globalCompositeOperation = 'source-over';
@@ -297,7 +392,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       setDrawingPolygonPoints([]);
       return;
     }
-    
+
     const newStroke: Stroke = {
       id: Date.now().toString(),
       userId: 'local',
@@ -329,11 +424,6 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     setDrawingPolygonPoints([]);
     renderCanvas();
   }, [renderCanvas]);
-
-
-
-
-
 
   const drawStroke = useCallback((stroke: Stroke) => {
     const canvas = layerRefs.current.get(stroke.userId);
@@ -480,14 +570,14 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       }
     } else if (stroke.tool === 'polygon') {
       if (stroke.points.length < 3) return;
-      
+
       ctx.beginPath();
       ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
       for (let i = 1; i < stroke.points.length; i++) {
         ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
       }
       ctx.closePath();
-      
+
       if (stroke.isFilled) {
         ctx.fillStyle = stroke.color;
         ctx.fill();
@@ -497,6 +587,75 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         ctx.globalCompositeOperation = 'source-over';
         ctx.stroke();
       }
+    } else if (stroke.tool === 'text') {
+      if (!stroke.text || !stroke.points[0]) return;
+
+      const containerX = stroke.points[0].x;
+      const containerY = stroke.points[0].y;
+      const containerWidth = stroke.textWidth || 0;
+      const containerHeight = stroke.textHeight || 0;
+      const fontSize = stroke.fontSize || 20;
+
+      // Background
+      if (stroke.backgroundColor && stroke.backgroundColor !== 'transparent') {
+        ctx.fillStyle = stroke.backgroundColor;
+        ctx.fillRect(containerX, containerY, containerWidth, containerHeight);
+      }
+
+      // Calculate offsets to match TextEditor visual appearance
+      const borderOffset = 1;
+      const lineHeight = fontSize * 1.2;
+      // Adjust vertical offset to match DOM rendering
+      // CSS line-height centers text, while Canvas 'top' baseline aligns to em-square top
+      // Adding a small manual adjustment (3px) to align perfectly
+      const verticalOffset = (lineHeight - fontSize) / 2 + 3;
+
+      const x = containerX + borderOffset;
+      const y = containerY + borderOffset + verticalOffset;
+      // Use container width for text wrapping, minus border padding
+      const width = containerWidth - (borderOffset * 2);
+
+      ctx.fillStyle = stroke.color;
+      // Use standard CSS font syntax: font-style font-weight font-size font-family
+      // Example: "italic bold 20px Arial"
+      const fontStyle = stroke.isItalic ? 'italic' : 'normal';
+      const fontWeight = stroke.isBold ? 'bold' : 'normal';
+      // Quote the font family to handle names with spaces safely
+      ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px "${stroke.fontFamily}"`;
+      ctx.textBaseline = 'top';
+
+      const wrappedLines: string[] = [];
+
+      // Auto-wrap text based on width
+      stroke.text.split('\n').forEach(paragraph => {
+        let currentLine = '';
+        for (let i = 0; i < paragraph.length; i++) {
+          const char = paragraph[i];
+          const testLine = currentLine + char;
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > width && i > 0) {
+            wrappedLines.push(currentLine);
+            currentLine = char;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        wrappedLines.push(currentLine);
+      });
+
+      wrappedLines.forEach((line, index) => {
+        drawTextLine(
+          ctx,
+          line,
+          x,
+          y + index * lineHeight,
+          width,
+          stroke.textAlign,
+          stroke.isUnderline,
+          stroke.isStrikethrough,
+          fontSize
+        );
+      });
     } else {
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = stroke.width;
@@ -510,6 +669,56 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       ctx.stroke();
     }
   }, []);
+  const handleConfirmText = useCallback((rect: { x: number, y: number, width: number, height: number }, text: string, style: TextStyle) => {
+    const uid = websocketService.getUserId() || 'local';
+    ensureUserLayer(uid);
+
+    const newStroke: Stroke = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: uid,
+      points: [{ x: rect.x, y: rect.y }],
+      color: style.color,
+      width: 1, // Not used for text stroke
+      isErased: false,
+      tool: 'text',
+      text: text,
+      fontSize: style.fontSize,
+      fontFamily: style.fontFamily,
+      isBold: style.isBold,
+      isItalic: style.isItalic,
+      isUnderline: style.isUnderline,
+      isStrikethrough: style.isStrikethrough,
+      textAlign: style.textAlign,
+      backgroundColor: style.backgroundColor,
+      textWidth: rect.width,
+      textHeight: rect.height
+    }
+
+    strokesRef.current.push(newStroke);
+    drawStroke(newStroke);
+
+    historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
+    redoStackRef.current = [];
+
+    websocketService.sendDrawEvent({
+      type: 'stroke',
+      stroke: newStroke
+    });
+
+    setIsEditingText(false);
+    setTempTextPosition(null);
+  }, [drawStroke, ensureUserLayer]);
+
+  const handleCancelText = useCallback(() => {
+    setIsEditingText(false);
+    setTempTextPosition(null);
+  }, []);
+
+
+
+
+
+
 
   useEffect(() => {
     websocketService.setDrawEventCallback((data: any) => {
@@ -669,6 +878,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
   useEffect(() => {
     const updateSizes = () => {
+      const dpr = window.devicePixelRatio || 1;
       const windowWidth = window.innerWidth
       const windowHeight = window.innerHeight
       const padding = Math.max(windowWidth, windowHeight) * CANVAS_CONFIG.CANVAS_SCALE_MULTIPLIER
@@ -683,12 +893,14 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
       // 更新所有图层
       layerRefs.current.forEach(canvas => {
-        canvas.width = newCanvasSize.width
-        canvas.height = newCanvasSize.height
+        canvas.width = newCanvasSize.width * dpr
+        canvas.height = newCanvasSize.height * dpr
+        canvas.style.width = `${newCanvasSize.width}px`
+        canvas.style.height = `${newCanvasSize.height}px`
         const ctx = canvas.getContext('2d')
         const offsetX = padding / 2
         const offsetY = padding / 2
-        ctx?.setTransform(1, 0, 0, 1, offsetX, offsetY)
+        ctx?.setTransform(dpr, 0, 0, dpr, offsetX * dpr, offsetY * dpr)
       })
 
       redrawAllLayers(); // 调整大小后重绘内容
@@ -764,8 +976,12 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     if (isEditingPolygon) {
       polygonEditorRef.current?.confirm();
     }
+    // Text editor requires explicit confirmation
+    if (isEditingText) {
+      return;
+    }
 
-    if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon') return
+    if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon' && selectedTool !== 'text') return
     setIsDrawing(true)
 
     const windowWidth = window.innerWidth
@@ -777,6 +993,14 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     const startPoint = {
       x: windowWidth / 2 + (e.clientX - screenCenterX) / zoomScale,
       y: windowHeight / 2 + (e.clientY - screenCenterY) / zoomScale
+    }
+
+    if (selectedTool === 'text') {
+      if (!isEditingText) {
+        setTempTextPosition(startPoint);
+        setIsEditingText(true);
+      }
+      return;
     }
 
     if (selectedTool === 'polygon') {
@@ -1340,13 +1564,17 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           ref={el => {
             if (el) {
               layerRefs.current.set(uid, el);
-              if (el.width !== canvasSize.width) {
-                el.width = canvasSize.width;
-                el.height = canvasSize.height;
-                const ctx = el.getContext('2d');
-                const paddingX = (canvasSize.width - window.innerWidth) / 2;
-                const paddingY = (canvasSize.height - window.innerHeight) / 2;
-                ctx?.setTransform(1, 0, 0, 1, paddingX, paddingY);
+              const dpr = window.devicePixelRatio || 1;
+              const targetWidth = canvasSize.width * dpr;
+              const targetHeight = canvasSize.height * dpr;
+              
+              // Only update if dimensions mismatch to avoid clearing canvas unnecessarily
+              if (el.width !== targetWidth || el.height !== targetHeight) {
+                el.width = targetWidth;
+                el.height = targetHeight;
+                // Style is handled by React prop below
+                
+                // Redraw to restore content and apply correct transform
                 redrawLayer(uid);
               }
             } else {
@@ -1358,6 +1586,8 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
             position: 'absolute',
             left: '50%',
             top: '50%',
+            width: `${canvasSize.width}px`,
+            height: `${canvasSize.height}px`,
             transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px)) scale(${zoomScale})`,
             pointerEvents: 'none',
             zIndex: uid === (websocketService.getUserId() || 'local') ? 10 : 1
@@ -1482,6 +1712,18 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
               zoomScale={zoomScale}
               onConfirm={handleConfirmPolygon}
               onCancel={handleCancelPolygon}
+            />
+          )}
+
+          {isEditingText && tempTextPosition && (
+            <TextEditor
+              ref={textEditorRef}
+              initialPosition={tempTextPosition}
+              initialColor={currentColor}
+              initialFontSize={currentFontSize}
+              zoomScale={zoomScale}
+              onConfirm={handleConfirmText}
+              onCancel={handleCancelText}
             />
           )}
 
@@ -1637,3 +1879,32 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 }
 )
 export default CanvasMain;
+
+const drawTextLine = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, align: string = 'left', underline: boolean | undefined, strike: boolean | undefined, fontSize: number) => {
+  const metrics = ctx.measureText(text);
+  const textWidth = metrics.width;
+  let drawX = x;
+
+  if (align === 'center') {
+    drawX = x + (maxWidth - textWidth) / 2;
+  } else if (align === 'right') {
+    drawX = x + maxWidth - textWidth;
+  }
+
+  ctx.fillText(text, drawX, y);
+
+  if (underline) {
+    ctx.beginPath();
+    ctx.moveTo(drawX, y + fontSize);
+    ctx.lineTo(drawX + textWidth, y + fontSize);
+    ctx.stroke();
+  }
+
+  if (strike) {
+    ctx.beginPath();
+    ctx.moveTo(drawX, y + fontSize / 2);
+    ctx.lineTo(drawX + textWidth, y + fontSize / 2);
+    ctx.stroke();
+  }
+};
+
