@@ -68,7 +68,7 @@ function CanvasModel() {
     // 只有在铅笔模式或我们想要强制切换时才切换到铅笔
     // 用户想要矩形颜色选择
     // 如果选中的工具是矩形，我们不应该切换到铅笔
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon') {
       setSelectedTool('pencil')
     }
   }
@@ -79,7 +79,7 @@ function CanvasModel() {
     setShowColorPicker(true)
     setSelectedBottomIndex(index)
     // 这里相同
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon') {
       setSelectedTool('pencil')
     }
   }
@@ -89,7 +89,7 @@ function CanvasModel() {
     setPickerColor(newColor)
     setColor(newColor)
     // 这里也一样
-    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') {
+    if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon') {
       setSelectedTool('pencil')
     }
     if (selectedBottomIndex !== null) {
@@ -104,7 +104,7 @@ function CanvasModel() {
   return (
     <div
       className="canvas-model-container"
-      onMouseEnter={() => (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line' || selectedTool === 'arrow') && setIsMenuOpen(true)}
+      onMouseEnter={() => (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line' || selectedTool === 'arrow' || selectedTool === 'polygon') && setIsMenuOpen(true)}
       onMouseLeave={() => setIsMenuOpen(false)}
     >
       <div
@@ -114,7 +114,7 @@ function CanvasModel() {
       >
         {React.createElement(selectedToolIcon, { size: 24 })}
       </div>
-      <div className={`model-menu ${isMenuOpen && (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line' || selectedTool === 'arrow') ? 'open' : ''}`}>
+      <div className={`model-menu ${isMenuOpen && (selectedTool === 'pencil' || selectedTool === 'rectangle' || selectedTool === 'circle' || selectedTool === 'line' || selectedTool === 'arrow' || selectedTool === 'polygon') ? 'open' : ''}`}>
         <div className="menu-section">
           <div className="menu-header">
             <FaPalette size={16} />

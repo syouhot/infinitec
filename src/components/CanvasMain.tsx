@@ -9,10 +9,12 @@ import RectangleEditor from './RectangleEditor'
 import CircleEditor from './CircleEditor'
 import LineEditor from './LineEditor'
 import ArrowEditor from './ArrowEditor'
+import PolygonEditor from './PolygonEditor'
 import type { RectangleEditorRef } from './RectangleEditor'
 import type { LineEditorRef } from './LineEditor'
 import type { CircleEditorRef } from './CircleEditor'
 import type { ArrowEditorRef } from './ArrowEditor'
+import type { PolygonEditorRef } from './PolygonEditor'
 interface Point {
   x: number
   y: number
@@ -25,7 +27,7 @@ interface Stroke {
   color: string
   width: number
   isErased: boolean
-  tool: 'pencil' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow'
+  tool: 'pencil' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'polygon'
   isFilled?: boolean
   lineDash?: number[]
   arrowType?: 'standard' | 'double' | 'solid' | 'solid-double'
@@ -58,26 +60,34 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
   const [boundary, setBoundary] = useState({ minX: 0, maxX: 0, minY: 0, maxY: 0 })
   const [zoomScale, setZoomScale] = useState(CANVAS_CONFIG.DEFAULT_ZOOM_SCALE)
-  
+
   const [isEditingRectangle, setIsEditingRectangle] = useState(false);
   const [isEditingCircle, setIsEditingCircle] = useState(false);
   const [isEditingLine, setIsEditingLine] = useState(false);
   const [isEditingArrow, setIsEditingArrow] = useState(false);
-  const [tempRect, setTempRect] = useState<{x: number, y: number, width: number, height: number} | null>(null);
-  const [tempLine, setTempLine] = useState<{p1: Point, p2: Point} | null>(null);
-  const [tempArrow, setTempArrow] = useState<{p1: Point, p2: Point} | null>(null);
+  const [isEditingPolygon, setIsEditingPolygon] = useState(false);
+  const [tempRect, setTempRect] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+  const [tempLine, setTempLine] = useState<{ p1: Point, p2: Point } | null>(null);
+  const [tempArrow, setTempArrow] = useState<{ p1: Point, p2: Point } | null>(null);
+  const [tempPolygonPoints, setTempPolygonPoints] = useState<Point[] | null>(null);
   const [lineStartPoint, setLineStartPoint] = useState<Point | null>(null);
   const [arrowStartPoint, setArrowStartPoint] = useState<Point | null>(null);
+
+  // Polygon Drawing State
+  const [drawingPolygonPoints, setDrawingPolygonPoints] = useState<Point[]>([]);
+  const [currentMousePos, setCurrentMousePos] = useState<Point | null>(null);
+  const [isSnappedToStart, setIsSnappedToStart] = useState(false);
 
   const strokesRef = useRef<Stroke[]>([])
   const currentStrokeRef = useRef<Stroke | null>(null)
   const historyRef = useRef<HistoryAction[]>([]);
   const redoStackRef = useRef<HistoryAction[]>([]);
-  
+
   const rectangleEditorRef = useRef<RectangleEditorRef>(null);
   const circleEditorRef = useRef<CircleEditorRef>(null);
   const lineEditorRef = useRef<LineEditorRef>(null);
   const arrowEditorRef = useRef<ArrowEditorRef>(null);
+  const polygonEditorRef = useRef<PolygonEditorRef>(null);
 
   // 工具更改时自动确认
   useEffect(() => {
@@ -93,8 +103,11 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     if (isEditingArrow && selectedTool !== 'arrow') {
       arrowEditorRef.current?.confirm();
     }
-  }, [selectedTool, isEditingRectangle, isEditingCircle, isEditingLine, isEditingArrow]);
-  
+    if (isEditingPolygon && selectedTool !== 'polygon') {
+      polygonEditorRef.current?.confirm();
+    }
+  }, [selectedTool, isEditingRectangle, isEditingCircle, isEditingLine, isEditingArrow, isEditingPolygon]);
+
   // 多画布架构状态
   const [activeUserIds, setActiveUserIds] = useState<Set<string>>(new Set(['local']));
   const layerRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
@@ -129,10 +142,9 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       ctx.lineWidth = width;
       ctx.globalCompositeOperation = 'source-over';
     }
-    
+
     ctx.stroke();
   }, []);
-
   const redrawLayer = useCallback((uid: string) => {
     const canvas = layerRefs.current.get(uid);
     if (!canvas) return;
@@ -156,12 +168,12 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     // `ctx.clearRect` 清除像素但不重置变换。
     // 然而，如果我们执行 `ctx.setTransform(1,0,0,1,0,0)` 来清除，我们会丢失填充变换。
     // 所以我们必须在清除后将其重置为填充变换。
-    
+
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
     const paddingX = (canvas.width - windowWidth) / 2;
     const paddingY = (canvas.height - windowHeight) / 2;
-    
+
     ctx.setTransform(1, 0, 0, 1, paddingX, paddingY);
 
     strokesRef.current.forEach(stroke => {
@@ -177,7 +189,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         ctx.strokeStyle = 'rgba(0,0,0,1)';
         ctx.lineWidth = stroke.width;
         ctx.globalCompositeOperation = 'destination-out';
-        
+
         ctx.beginPath();
         ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
         for (let i = 1; i < stroke.points.length; i++) {
@@ -189,12 +201,12 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         ctx.globalCompositeOperation = 'source-over';
         const p1 = stroke.points[0];
         const p2 = stroke.points[1];
-        
+
         const x = Math.min(p1.x, p2.x);
         const y = Math.min(p1.y, p2.y);
         const w = Math.abs(p1.x - p2.x);
         const h = Math.abs(p1.y - p2.y);
-        
+
         if (stroke.isFilled) {
           ctx.fillStyle = stroke.color;
           ctx.fillRect(x, y, w, h);
@@ -208,16 +220,16 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         ctx.globalCompositeOperation = 'source-over';
         const p1 = stroke.points[0];
         const p2 = stroke.points[1];
-        
+
         const x = Math.min(p1.x, p2.x);
         const y = Math.min(p1.y, p2.y);
         const w = Math.abs(p1.x - p2.x);
         const h = Math.abs(p1.y - p2.y);
-        
+
         ctx.beginPath();
         // 绘制椭圆/圆形
-        ctx.ellipse(x + w/2, y + h/2, w/2, h/2, 0, 0, 2 * Math.PI);
-        
+        ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 2 * Math.PI);
+
         if (stroke.isFilled) {
           ctx.fillStyle = stroke.color;
           ctx.fill();
@@ -237,7 +249,26 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         ctx.lineTo(stroke.points[1].x, stroke.points[1].y);
         ctx.stroke();
         ctx.setLineDash([]);
-      } else {
+      } else if (stroke.tool === 'polygon') {
+         if (stroke.points.length < 3) return;
+         
+         ctx.beginPath();
+         ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+         for (let i = 1; i < stroke.points.length; i++) {
+           ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+         }
+         ctx.closePath();
+         
+         if (stroke.isFilled) {
+           ctx.fillStyle = stroke.color;
+           ctx.fill();
+         } else {
+           ctx.strokeStyle = stroke.color;
+           ctx.lineWidth = stroke.width;
+           ctx.globalCompositeOperation = 'source-over';
+           ctx.stroke();
+         }
+       } else {
         ctx.strokeStyle = stroke.color;
         ctx.lineWidth = stroke.width;
         ctx.globalCompositeOperation = 'source-over';
@@ -251,15 +282,58 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       }
     });
   }, []);
-
   const redrawAllLayers = useCallback(() => {
     activeUserIds.forEach(uid => redrawLayer(uid));
   }, [activeUserIds, redrawLayer]);
-
   // renderCanvas is now an alias for redrawAllLayers
   const renderCanvas = useCallback(() => {
     redrawAllLayers();
   }, [redrawAllLayers]);
+
+  const handleConfirmPolygon = useCallback((points: Point[], style: { color: string; width: number; isFilled: boolean }) => {
+    if (points.length < 3) {
+      setIsEditingPolygon(false);
+      setTempPolygonPoints(null);
+      setDrawingPolygonPoints([]);
+      return;
+    }
+    
+    const newStroke: Stroke = {
+      id: Date.now().toString(),
+      userId: 'local',
+      points: points,
+      color: style.color,
+      width: style.width,
+      isErased: false,
+      tool: 'polygon',
+      isFilled: style.isFilled,
+    }
+
+    strokesRef.current.push(newStroke)
+    historyRef.current.push({
+      type: 'draw',
+      strokeIds: [newStroke.id]
+    })
+
+    setIsEditingPolygon(false);
+    setTempPolygonPoints(null);
+    setDrawingPolygonPoints([]);
+
+    websocketService.sendDrawEvent(newStroke)
+    renderCanvas()
+  }, [renderCanvas])
+
+  const handleCancelPolygon = useCallback(() => {
+    setIsEditingPolygon(false);
+    setTempPolygonPoints(null);
+    setDrawingPolygonPoints([]);
+    renderCanvas();
+  }, [renderCanvas]);
+
+
+
+
+
 
   const drawStroke = useCallback((stroke: Stroke) => {
     const canvas = layerRefs.current.get(stroke.userId);
@@ -275,27 +349,27 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       ctx.strokeStyle = 'rgba(0,0,0,1)';
       ctx.lineWidth = stroke.width;
       ctx.globalCompositeOperation = 'destination-out';
-      
+
       // 对于橡皮擦，我们需要单独绘制线段以匹配本地行为（基于区域）
       // 而不是单个路径，这可能与 destination-out 表现不同
       ctx.beginPath();
       ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
       for (let i = 1; i < stroke.points.length; i++) {
-         ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
-         ctx.stroke();
-         ctx.beginPath();
-         ctx.moveTo(stroke.points[i].x, stroke.points[i].y);
+        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(stroke.points[i].x, stroke.points[i].y);
       }
     } else if (stroke.tool === 'rectangle') {
       if (stroke.points.length < 2) return;
       const p1 = stroke.points[0];
       const p2 = stroke.points[1];
-      
+
       const x = Math.min(p1.x, p2.x);
       const y = Math.min(p1.y, p2.y);
       const w = Math.abs(p1.x - p2.x);
       const h = Math.abs(p1.y - p2.y);
-      
+
       if (stroke.isFilled) {
         ctx.fillStyle = stroke.color;
         ctx.fillRect(x, y, w, h);
@@ -308,15 +382,15 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       if (stroke.points.length < 2) return;
       const p1 = stroke.points[0];
       const p2 = stroke.points[1];
-      
+
       const x = Math.min(p1.x, p2.x);
       const y = Math.min(p1.y, p2.y);
       const w = Math.abs(p1.x - p2.x);
       const h = Math.abs(p1.y - p2.y);
-      
+
       ctx.beginPath();
-      ctx.ellipse(x + w/2, y + h/2, w/2, h/2, 0, 0, 2 * Math.PI);
-      
+      ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 2 * Math.PI);
+
       if (stroke.isFilled) {
         ctx.fillStyle = stroke.color;
         ctx.fill();
@@ -361,54 +435,73 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       const headLen = Math.max(10, width * 3);
 
       const drawHead = (x: number, y: number, angle: number, isSolid: boolean) => {
-           const actualHeadLen = isSolid ? headLen * 1.8 : headLen;
-           if (isSolid) {
-               const pBack = { x: x - actualHeadLen * Math.cos(angle), y: y - actualHeadLen * Math.sin(angle) };
-               const pLeft = { 
-                   x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle - Math.PI/2),
-                   y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle - Math.PI/2)
-               };
-               const pRight = { 
-                   x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle + Math.PI/2),
-                   y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle + Math.PI/2)
-               };
-               ctx.fillStyle = color;
-               ctx.beginPath();
-               ctx.moveTo(x, y);
-               ctx.lineTo(pLeft.x, pLeft.y);
-               ctx.lineTo(pRight.x, pRight.y);
-               ctx.closePath();
-               ctx.fill();
-           } else {
-               const xLeft = x - headLen * Math.cos(angle - Math.PI / 6);
-               const yLeft = y - headLen * Math.sin(angle - Math.PI / 6);
-               const xRight = x - headLen * Math.cos(angle + Math.PI / 6);
-               const yRight = y - headLen * Math.sin(angle + Math.PI / 6);
-               
-               ctx.beginPath();
-               ctx.moveTo(xLeft, yLeft);
-               ctx.lineTo(x, y);
-               ctx.lineTo(xRight, yRight);
-               ctx.stroke();
-           }
+        const actualHeadLen = isSolid ? headLen * 1.8 : headLen;
+        if (isSolid) {
+          const pBack = { x: x - actualHeadLen * Math.cos(angle), y: y - actualHeadLen * Math.sin(angle) };
+          const pLeft = {
+            x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle - Math.PI / 2),
+            y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle - Math.PI / 2)
+          };
+          const pRight = {
+            x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle + Math.PI / 2),
+            y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle + Math.PI / 2)
+          };
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(pLeft.x, pLeft.y);
+          ctx.lineTo(pRight.x, pRight.y);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          const xLeft = x - headLen * Math.cos(angle - Math.PI / 6);
+          const yLeft = y - headLen * Math.sin(angle - Math.PI / 6);
+          const xRight = x - headLen * Math.cos(angle + Math.PI / 6);
+          const yRight = y - headLen * Math.sin(angle + Math.PI / 6);
+
+          ctx.beginPath();
+          ctx.moveTo(xLeft, yLeft);
+          ctx.lineTo(x, y);
+          ctx.lineTo(xRight, yRight);
+          ctx.stroke();
+        }
       }
 
       if (arrowType === 'standard') {
-          drawHead(p2.x, p2.y, angle, false);
+        drawHead(p2.x, p2.y, angle, false);
       } else if (arrowType === 'double') {
-          drawHead(p1.x, p1.y, angle + Math.PI, false);
-          drawHead(p2.x, p2.y, angle, false);
+        drawHead(p1.x, p1.y, angle + Math.PI, false);
+        drawHead(p2.x, p2.y, angle, false);
       } else if (arrowType === 'solid') {
-          drawHead(p2.x, p2.y, angle, true);
+        drawHead(p2.x, p2.y, angle, true);
       } else if (arrowType === 'solid-double') {
-          drawHead(p1.x, p1.y, angle + Math.PI, true);
-          drawHead(p2.x, p2.y, angle, true);
+        drawHead(p1.x, p1.y, angle + Math.PI, true);
+        drawHead(p2.x, p2.y, angle, true);
+      }
+    } else if (stroke.tool === 'polygon') {
+      if (stroke.points.length < 3) return;
+      
+      ctx.beginPath();
+      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+      for (let i = 1; i < stroke.points.length; i++) {
+        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+      }
+      ctx.closePath();
+      
+      if (stroke.isFilled) {
+        ctx.fillStyle = stroke.color;
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.width;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.stroke();
       }
     } else {
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = stroke.width;
       ctx.globalCompositeOperation = 'source-over';
-      
+
       ctx.beginPath();
       ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
       for (let i = 1; i < stroke.points.length; i++) {
@@ -423,11 +516,11 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       if (data.type === 'stroke') {
         const stroke = data.stroke;
         ensureUserLayer(stroke.userId);
-        
+
         // 检查笔画是否已存在（不太可能但安全）
         if (!strokesRef.current.find(s => s.id === stroke.id)) {
-            strokesRef.current.push(stroke);
-            drawStroke(stroke);
+          strokesRef.current.push(stroke);
+          drawStroke(stroke);
         }
       } else if (data.type === 'erase') {
         const stroke = strokesRef.current.find(s => s.id === data.id)
@@ -445,7 +538,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     })
 
     return () => {
-      websocketService.setDrawEventCallback(() => {});
+      websocketService.setDrawEventCallback(() => { });
     }
   }, [ensureUserLayer, drawSegment, redrawLayer])
 
@@ -597,7 +690,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         const offsetY = padding / 2
         ctx?.setTransform(1, 0, 0, 1, offsetX, offsetY)
       })
-      
+
       redrawAllLayers(); // 调整大小后重绘内容
 
       setBoundary(createBoundary(newCanvasSize.width, newCanvasSize.height, windowWidth, windowHeight))
@@ -616,7 +709,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     // 计算当前鼠标位置对应的画布坐标
     const screenCenterX = window.innerWidth / 2 + canvasOffset.x;
     const screenCenterY = window.innerHeight / 2 + canvasOffset.y;
-    
+
     const currentCanvasX = canvasSize.width / 2 + (centerX - screenCenterX) / zoomScale;
     const currentCanvasY = canvasSize.height / 2 + (centerY - screenCenterY) / zoomScale;
 
@@ -646,7 +739,14 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       dragStartRef.current = { x: e.clientX, y: e.clientY }
       return
     }
-    if (e.button === 2) return
+    if (e.button === 2) {
+      if (selectedTool === 'polygon') {
+        setDrawingPolygonPoints([]);
+        setCurrentMousePos(null);
+        setIsDrawing(false);
+      }
+      return
+    }
 
     // 开始新的绘制交互时自动确认编辑形状
     if (isEditingRectangle) {
@@ -661,8 +761,11 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     if (isEditingArrow) {
       arrowEditorRef.current?.confirm();
     }
+    if (isEditingPolygon) {
+      polygonEditorRef.current?.confirm();
+    }
 
-    if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') return
+    if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow' && selectedTool !== 'polygon') return
     setIsDrawing(true)
 
     const windowWidth = window.innerWidth
@@ -675,9 +778,23 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       x: windowWidth / 2 + (e.clientX - screenCenterX) / zoomScale,
       y: windowHeight / 2 + (e.clientY - screenCenterY) / zoomScale
     }
-    
+
+    if (selectedTool === 'polygon') {
+      if (isSnappedToStart && drawingPolygonPoints.length >= 2) {
+        setTempPolygonPoints([...drawingPolygonPoints]);
+        setIsEditingPolygon(true);
+        setDrawingPolygonPoints([]);
+        setCurrentMousePos(null);
+        setIsSnappedToStart(false);
+        setIsDrawing(false);
+      } else {
+        setDrawingPolygonPoints([...drawingPolygonPoints, startPoint]);
+      }
+      return;
+    }
+
     lastPositionRef.current = startPoint
-    
+
     if (selectedTool === 'rectangle' || selectedTool === 'circle') {
       setTempRect({ x: startPoint.x, y: startPoint.y, width: 0, height: 0 });
       return;
@@ -688,19 +805,19 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         // 第二次点击 - 完成线条并进入编辑模式
         let p2 = startPoint;
         if (e.ctrlKey) {
-             const dx = startPoint.x - lineStartPoint.x;
-             const dy = startPoint.y - lineStartPoint.y;
-             const angle = Math.atan2(dy, dx);
-             const distance = Math.sqrt(dx * dx + dy * dy);
-             
-             // 吸附到15度（PI/12弧度）
-             const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
-             
-             const snappedX = lineStartPoint.x + distance * Math.cos(snapAngle);
-             const snappedY = lineStartPoint.y + distance * Math.sin(snapAngle);
-             p2 = { x: snappedX, y: snappedY };
+          const dx = startPoint.x - lineStartPoint.x;
+          const dy = startPoint.y - lineStartPoint.y;
+          const angle = Math.atan2(dy, dx);
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          // 吸附到15度（PI/12弧度）
+          const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
+
+          const snappedX = lineStartPoint.x + distance * Math.cos(snapAngle);
+          const snappedY = lineStartPoint.y + distance * Math.sin(snapAngle);
+          p2 = { x: snappedX, y: snappedY };
         }
-        
+
         setTempLine({ p1: lineStartPoint, p2: p2 });
         setIsEditingLine(true);
         setLineStartPoint(null);
@@ -718,19 +835,19 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         // 第二次点击 - 完成箭头并进入编辑模式
         let p2 = startPoint;
         if (e.ctrlKey) {
-             const dx = startPoint.x - arrowStartPoint.x;
-             const dy = startPoint.y - arrowStartPoint.y;
-             const angle = Math.atan2(dy, dx);
-             const distance = Math.sqrt(dx * dx + dy * dy);
-             
-             // 吸附到15度（PI/12弧度）
-             const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
-             
-             const snappedX = arrowStartPoint.x + distance * Math.cos(snapAngle);
-             const snappedY = arrowStartPoint.y + distance * Math.sin(snapAngle);
-             p2 = { x: snappedX, y: snappedY };
+          const dx = startPoint.x - arrowStartPoint.x;
+          const dy = startPoint.y - arrowStartPoint.y;
+          const angle = Math.atan2(dy, dx);
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          // 吸附到15度（PI/12弧度）
+          const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
+
+          const snappedX = arrowStartPoint.x + distance * Math.cos(snapAngle);
+          const snappedY = arrowStartPoint.y + distance * Math.sin(snapAngle);
+          p2 = { x: snappedX, y: snappedY };
         }
-        
+
         setTempArrow({ p1: arrowStartPoint, p2: p2 });
         setIsEditingArrow(true);
         setArrowStartPoint(null);
@@ -742,7 +859,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       }
       return;
     }
-    
+
     const uid = websocketService.getUserId() || 'local';
     ensureUserLayer(uid);
 
@@ -755,10 +872,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       isErased: false,
       tool: selectedTool as 'pencil' | 'eraser'
     }
-    
+
     currentStrokeRef.current = newStroke
     strokesRef.current.push(newStroke)
-    
+
     // 绘制初始点
     drawSegment(uid, startPoint, startPoint, currentColor, selectedTool === 'eraser' ? eraserSize : currentLineWidth, selectedTool);
 
@@ -794,144 +911,161 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     }
 
     rafIdRef.current = requestAnimationFrame(() => {
-        if (isDragging && dragStartRef.current) {
-          const deltaX = clientX - dragStartRef.current!.x
-          const deltaY = clientY - dragStartRef.current!.y
+      if (isDragging && dragStartRef.current) {
+        const deltaX = clientX - dragStartRef.current!.x
+        const deltaY = clientY - dragStartRef.current!.y
 
-          const newOffset = calculateClampedOffset(
-            { x: canvasOffset.x + deltaX, y: canvasOffset.y + deltaY },
-            zoomScale,
-            canvasSize.width,
-            canvasSize.height,
-            window.innerWidth,
-            window.innerHeight
-          )
-          setCanvasOffset(newOffset)
+        const newOffset = calculateClampedOffset(
+          { x: canvasOffset.x + deltaX, y: canvasOffset.y + deltaY },
+          zoomScale,
+          canvasSize.width,
+          canvasSize.height,
+          window.innerWidth,
+          window.innerHeight
+        )
+        setCanvasOffset(newOffset)
 
-          dragStartRef.current = { x: clientX, y: clientY }
-          return
-        }
+        dragStartRef.current = { x: clientX, y: clientY }
+        return
+      }
 
-        const windowWidth = window.innerWidth
-        const windowHeight = window.innerHeight
+      const windowWidth = window.innerWidth
+      const windowHeight = window.innerHeight
 
-        const screenCenterX = windowWidth / 2 + canvasOffset.x
-        const screenCenterY = windowHeight / 2 + canvasOffset.y
+      const screenCenterX = windowWidth / 2 + canvasOffset.x
+      const screenCenterY = windowHeight / 2 + canvasOffset.y
 
-        const currentX = windowWidth / 2 + (clientX - screenCenterX) / zoomScale
-        const currentY = windowHeight / 2 + (clientY - screenCenterY) / zoomScale
-        const currentPoint = { x: currentX, y: currentY }
+      const currentX = windowWidth / 2 + (clientX - screenCenterX) / zoomScale
+      const currentY = windowHeight / 2 + (clientY - screenCenterY) / zoomScale
+      const currentPoint = { x: currentX, y: currentY }
 
-        if (selectedTool === 'line' && lineStartPoint) {
-           if (isCtrlPressed) {
-             const dx = currentPoint.x - lineStartPoint.x;
-             const dy = currentPoint.y - lineStartPoint.y;
-             const angle = Math.atan2(dy, dx);
-             const distance = Math.sqrt(dx * dx + dy * dy);
-             
-             // 吸附到15度（PI/12弧度）
-             const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
-             
-             const snappedX = lineStartPoint.x + distance * Math.cos(snapAngle);
-             const snappedY = lineStartPoint.y + distance * Math.sin(snapAngle);
-             
-             setTempLine({ p1: lineStartPoint, p2: { x: snappedX, y: snappedY } });
-           } else {
-             setTempLine({ p1: lineStartPoint, p2: currentPoint });
-           }
-           return;
-        }
+      if (selectedTool === 'line' && lineStartPoint) {
+        if (isCtrlPressed) {
+          const dx = currentPoint.x - lineStartPoint.x;
+          const dy = currentPoint.y - lineStartPoint.y;
+          const angle = Math.atan2(dy, dx);
+          const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (selectedTool === 'arrow' && arrowStartPoint) {
-           if (isCtrlPressed) {
-             const dx = currentPoint.x - arrowStartPoint.x;
-             const dy = currentPoint.y - arrowStartPoint.y;
-             const angle = Math.atan2(dy, dx);
-             const distance = Math.sqrt(dx * dx + dy * dy);
-             
-             // 吸附到15度（PI/12弧度）
-             const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
-             
-             const snappedX = arrowStartPoint.x + distance * Math.cos(snapAngle);
-             const snappedY = arrowStartPoint.y + distance * Math.sin(snapAngle);
-             
-             setTempArrow({ p1: arrowStartPoint, p2: { x: snappedX, y: snappedY } });
-           } else {
-             setTempArrow({ p1: arrowStartPoint, p2: currentPoint });
-           }
-           return;
-        }
+          // 吸附到15度（PI/12弧度）
+          const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
 
-        if (!isDrawing || !lastPositionRef.current) return
-        
-        if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') return
+          const snappedX = lineStartPoint.x + distance * Math.cos(snapAngle);
+          const snappedY = lineStartPoint.y + distance * Math.sin(snapAngle);
 
-        if (selectedTool === 'rectangle' || selectedTool === 'circle') {
-          const start = lastPositionRef.current;
-          const deltaX = currentPoint.x - start.x;
-          const deltaY = currentPoint.y - start.y;
-
-          if (isCtrlPressed) {
-            // 基于中心的绘制
-            // 从中心到当前鼠标点的距离决定半宽/半高
-            const halfWidth = Math.abs(deltaX);
-            const halfHeight = Math.abs(deltaY);
-            
-            // 由于之前 Ctrl 的逻辑是正方形，我们保持它：从中心绘制正方形
-            // 要使其只是"从中心"而没有正方形，我们会直接使用 halfWidth 和 halfHeight。
-            // 但通常修饰键会添加约束。
-            // 用户要求"按住 Ctrl... 以中心点为中心绘制"。
-            // 之前的请求是"Ctrl... 绘制正方形"。
-            // 最安全的假设是他们想要"从中心绘制正方形"。
-            // 让我们使用最大维度作为正方形。
-            const size = Math.max(halfWidth, halfHeight);
-            
-            setTempRect({
-              x: start.x - size,
-              y: start.y - size,
-              width: size * 2,
-              height: size * 2
-            });
-          } else {
-            setTempRect({
-              x: Math.min(start.x, currentPoint.x),
-              y: Math.min(start.y, currentPoint.y),
-              width: Math.abs(deltaX),
-              height: Math.abs(deltaY)
-            });
-          }
-          return;
-        }
-
-        if (selectedTool === 'line' && lineStartPoint) {
+          setTempLine({ p1: lineStartPoint, p2: { x: snappedX, y: snappedY } });
+        } else {
           setTempLine({ p1: lineStartPoint, p2: currentPoint });
-          return;
         }
+        return;
+      }
 
-        if (!currentStrokeRef.current) return;
-        
-        const uid = websocketService.getUserId() || 'local';
+      if (selectedTool === 'arrow' && arrowStartPoint) {
+        if (isCtrlPressed) {
+          const dx = currentPoint.x - arrowStartPoint.x;
+          const dy = currentPoint.y - arrowStartPoint.y;
+          const angle = Math.atan2(dy, dx);
+          const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // 增量绘制
-        drawSegment(uid, lastPositionRef.current, currentPoint, currentColor, selectedTool === 'eraser' ? eraserSize : currentLineWidth, selectedTool);
+          // 吸附到15度（PI/12弧度）
+          const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
 
-        // 更新数据
-        currentStrokeRef.current.points.push(currentPoint);
+          const snappedX = arrowStartPoint.x + distance * Math.cos(snapAngle);
+          const snappedY = arrowStartPoint.y + distance * Math.sin(snapAngle);
 
-        lastPositionRef.current = currentPoint
+          setTempArrow({ p1: arrowStartPoint, p2: { x: snappedX, y: snappedY } });
+        } else {
+          setTempArrow({ p1: arrowStartPoint, p2: currentPoint });
+        }
+        return;
+      }
+
+      if (selectedTool === 'polygon' && drawingPolygonPoints.length > 0) {
+        let targetPoint = currentPoint;
+        if (drawingPolygonPoints.length > 2) {
+          const startPoint = drawingPolygonPoints[0];
+          const dist = Math.sqrt(Math.pow(currentPoint.x - startPoint.x, 2) + Math.pow(currentPoint.y - startPoint.y, 2));
+          const threshold = 20 / zoomScale;
+          if (dist < threshold) {
+            setIsSnappedToStart(true);
+            targetPoint = startPoint;
+          } else {
+            setIsSnappedToStart(false);
+          }
+        }
+        setCurrentMousePos(targetPoint);
+        return;
+      }
+
+      if (!isDrawing || !lastPositionRef.current) return
+
+      if (selectedTool !== 'pencil' && selectedTool !== 'eraser' && selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') return
+
+      if (selectedTool === 'rectangle' || selectedTool === 'circle') {
+        const start = lastPositionRef.current;
+        const deltaX = currentPoint.x - start.x;
+        const deltaY = currentPoint.y - start.y;
+
+        if (isCtrlPressed) {
+          // 基于中心的绘制
+          // 从中心到当前鼠标点的距离决定半宽/半高
+          const halfWidth = Math.abs(deltaX);
+          const halfHeight = Math.abs(deltaY);
+
+          // 由于之前 Ctrl 的逻辑是正方形，我们保持它：从中心绘制正方形
+          // 要使其只是"从中心"而没有正方形，我们会直接使用 halfWidth 和 halfHeight。
+          // 但通常修饰键会添加约束。
+          // 用户要求"按住 Ctrl... 以中心点为中心绘制"。
+          // 之前的请求是"Ctrl... 绘制正方形"。
+          // 最安全的假设是他们想要"从中心绘制正方形"。
+          // 让我们使用最大维度作为正方形。
+          const size = Math.max(halfWidth, halfHeight);
+
+          setTempRect({
+            x: start.x - size,
+            y: start.y - size,
+            width: size * 2,
+            height: size * 2
+          });
+        } else {
+          setTempRect({
+            x: Math.min(start.x, currentPoint.x),
+            y: Math.min(start.y, currentPoint.y),
+            width: Math.abs(deltaX),
+            height: Math.abs(deltaY)
+          });
+        }
+        return;
+      }
+
+      if (selectedTool === 'line' && lineStartPoint) {
+        setTempLine({ p1: lineStartPoint, p2: currentPoint });
+        return;
+      }
+
+      if (!currentStrokeRef.current) return;
+
+      const uid = websocketService.getUserId() || 'local';
+
+      // 增量绘制
+      drawSegment(uid, lastPositionRef.current, currentPoint, currentColor, selectedTool === 'eraser' ? eraserSize : currentLineWidth, selectedTool);
+
+      // 更新数据
+      currentStrokeRef.current.points.push(currentPoint);
+
+      lastPositionRef.current = currentPoint
     });
   }
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const clientX = e.clientX;
     const clientY = e.clientY;
-    
+
     // 使用 requestAnimationFrame 进行光标移动
     // 注意：如果我们重构，可以将其与上面的 rAF 合并，但现在单独的 rAF 也可以，或者我们可以假设 handleMouseMove 调用两者。
     // 实际上，每次鼠标移动调用两次 rAF 可能是多余的。
     // 让我们通过尽可能不在这里使用 rAF 来优化，或者使用直接变换。
     // 直接变换非常快。问题可能来自 top/left 的布局抖动。
-    
+
     if (selectedTool === 'eraser' && eraserCursorRef.current) {
       const size = eraserSize * zoomScale;
       // 使用变换进行 GPU 加速
@@ -970,10 +1104,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     }
 
     if (isDrawing && currentStrokeRef.current) {
-        websocketService.sendDrawEvent({
-            type: 'stroke',
-            stroke: currentStrokeRef.current
-        })
+      websocketService.sendDrawEvent({
+        type: 'stroke',
+        stroke: currentStrokeRef.current
+      })
     }
     setIsDrawing(false)
     setIsDragging(false)
@@ -1010,7 +1144,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     strokesRef.current.push(newStroke);
     drawStroke(newStroke);
-    
+
     // 历史记录
     historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
     redoStackRef.current = [];
@@ -1052,7 +1186,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     strokesRef.current.push(newStroke);
     drawStroke(newStroke);
-    
+
     // 历史记录
     historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
     redoStackRef.current = [];
@@ -1095,7 +1229,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     strokesRef.current.push(newStroke);
     drawStroke(newStroke);
-    
+
     historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
     redoStackRef.current = [];
 
@@ -1130,7 +1264,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     strokesRef.current.push(newStroke);
     drawStroke(newStroke);
-    
+
     historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
     redoStackRef.current = [];
 
@@ -1150,10 +1284,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
   const handleMouseLeave = () => {
     if (isDrawing && currentStrokeRef.current) {
-        websocketService.sendDrawEvent({
-            type: 'stroke',
-            stroke: currentStrokeRef.current
-        })
+      websocketService.sendDrawEvent({
+        type: 'stroke',
+        stroke: currentStrokeRef.current
+      })
     }
     setIsDrawing(false)
     setIsDragging(false)
@@ -1183,8 +1317,8 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   };
 
   return (
-    <div 
-      className="canvas-container" 
+    <div
+      className="canvas-container"
       onWheel={handleWheel}
       style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}
     >
@@ -1198,7 +1332,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px)) scale(${zoomScale})`
         }}
       />
-      
+
       {/* Render all user layers */}
       {Array.from(activeUserIds).map(uid => (
         <canvas
@@ -1207,13 +1341,13 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
             if (el) {
               layerRefs.current.set(uid, el);
               if (el.width !== canvasSize.width) {
-                 el.width = canvasSize.width;
-                 el.height = canvasSize.height;
-                 const ctx = el.getContext('2d');
-                 const paddingX = (canvasSize.width - window.innerWidth) / 2;
-                 const paddingY = (canvasSize.height - window.innerHeight) / 2;
-                 ctx?.setTransform(1, 0, 0, 1, paddingX, paddingY);
-                 redrawLayer(uid);
+                el.width = canvasSize.width;
+                el.height = canvasSize.height;
+                const ctx = el.getContext('2d');
+                const paddingX = (canvasSize.width - window.innerWidth) / 2;
+                const paddingY = (canvasSize.height - window.innerHeight) / 2;
+                ctx?.setTransform(1, 0, 0, 1, paddingX, paddingY);
+                redrawLayer(uid);
               }
             } else {
               layerRefs.current.delete(uid);
@@ -1230,16 +1364,16 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           }}
         />
       ))}
-      
+
       {/* Interaction Layer */}
       <div
         className="interaction-layer"
         style={{
-           position: 'absolute',
-           width: '100%',
-           height: '100%',
-           zIndex: 100,
-           cursor: selectedTool === 'eraser' ? 'none' : 'crosshair'
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          zIndex: 100,
+          cursor: selectedTool === 'eraser' ? 'none' : 'crosshair'
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={(e) => {
@@ -1270,182 +1404,233 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
       {/* Rectangle Editor & Temp Preview Wrapper */}
       <div style={{
-          position: 'absolute',
-          left: '50%',
-          top: '50%',
-          transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px)) scale(${zoomScale})`,
-          width: canvasSize.width,
-          height: canvasSize.height,
-          pointerEvents: 'none',
-          zIndex: 200
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px)) scale(${zoomScale})`,
+        width: canvasSize.width,
+        height: canvasSize.height,
+        pointerEvents: 'none',
+        zIndex: 200
       }}>
-         <div style={{
-             position: 'absolute',
-             left: (canvasSize.width - window.innerWidth) / 2,
-             top: (canvasSize.height - window.innerHeight) / 2,
-             width: 0,
-             height: 0,
-             overflow: 'visible'
-         }}>
-             {isEditingRectangle && tempRect && (
-              <RectangleEditor
-                ref={rectangleEditorRef}
-                initialRect={tempRect}
-                initialColor={currentColor}
-                initialWidth={currentLineWidth}
-                zoomScale={zoomScale}
-                onConfirm={handleConfirmRectangle}
-                onCancel={handleCancelRectangle}
+        <div style={{
+          position: 'absolute',
+          left: (canvasSize.width - window.innerWidth) / 2,
+          top: (canvasSize.height - window.innerHeight) / 2,
+          width: 0,
+          height: 0,
+          overflow: 'visible'
+        }}>
+          {isEditingRectangle && tempRect && (
+            <RectangleEditor
+              ref={rectangleEditorRef}
+              initialRect={tempRect}
+              initialColor={currentColor}
+              initialWidth={currentLineWidth}
+              zoomScale={zoomScale}
+              onConfirm={handleConfirmRectangle}
+              onCancel={handleCancelRectangle}
+            />
+          )}
+
+          {isEditingCircle && tempRect && (
+            <CircleEditor
+              ref={circleEditorRef}
+              initialRect={tempRect}
+              initialColor={currentColor}
+              initialWidth={currentLineWidth}
+              zoomScale={zoomScale}
+              onConfirm={handleConfirmCircle}
+              onCancel={handleCancelCircle}
+            />
+          )}
+
+          {isEditingLine && tempLine && (
+            <LineEditor
+              ref={lineEditorRef}
+              initialP1={tempLine.p1}
+              initialP2={tempLine.p2}
+              initialColor={currentColor}
+              initialWidth={currentLineWidth}
+              initialLineDash={currentLineDash}
+              zoomScale={zoomScale}
+              onConfirm={handleConfirmLine}
+              onCancel={handleCancelLine}
+            />
+          )}
+
+          {isEditingArrow && tempArrow && (
+            <ArrowEditor
+              ref={arrowEditorRef}
+              initialP1={tempArrow.p1}
+              initialP2={tempArrow.p2}
+              initialColor={currentColor}
+              initialWidth={currentLineWidth}
+              initialArrowType={currentArrowType}
+              zoomScale={zoomScale}
+              onConfirm={handleConfirmArrow}
+              onCancel={handleCancelArrow}
+            />
+          )}
+
+          {isEditingPolygon && tempPolygonPoints && (
+            <PolygonEditor
+              ref={polygonEditorRef}
+              initialPoints={tempPolygonPoints}
+              initialColor={currentColor}
+              initialWidth={currentLineWidth}
+              zoomScale={zoomScale}
+              onConfirm={handleConfirmPolygon}
+              onCancel={handleCancelPolygon}
+            />
+          )}
+
+          {selectedTool === 'polygon' && drawingPolygonPoints.length > 0 && (
+            <svg
+              width={canvasSize.width}
+              height={canvasSize.height}
+              style={{ position: 'absolute', overflow: 'visible', pointerEvents: 'none', left: 0, top: 0 }}
+            >
+              <polyline
+                points={drawingPolygonPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                fill="none"
+                stroke={currentColor}
+                strokeWidth={currentLineWidth}
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
-            )}
-
-            {isEditingCircle && tempRect && (
-              <CircleEditor
-                ref={circleEditorRef}
-                initialRect={tempRect}
-                initialColor={currentColor}
-                initialWidth={currentLineWidth}
-                zoomScale={zoomScale}
-                onConfirm={handleConfirmCircle}
-                onCancel={handleCancelCircle}
-              />
-            )}
-
-            {isEditingLine && tempLine && (
-              <LineEditor
-                ref={lineEditorRef}
-                initialP1={tempLine.p1}
-                initialP2={tempLine.p2}
-                initialColor={currentColor}
-                initialWidth={currentLineWidth}
-                initialLineDash={currentLineDash}
-                zoomScale={zoomScale}
-                onConfirm={handleConfirmLine}
-                onCancel={handleCancelLine}
-              />
-            )}
-
-            {isEditingArrow && tempArrow && (
-              <ArrowEditor
-                ref={arrowEditorRef}
-                initialP1={tempArrow.p1}
-                initialP2={tempArrow.p2}
-                initialColor={currentColor}
-                initialWidth={currentLineWidth}
-                initialArrowType={currentArrowType}
-                zoomScale={zoomScale}
-                onConfirm={handleConfirmArrow}
-                onCancel={handleCancelArrow}
-              />
-            )}
-            
-            {isDrawing && selectedTool === 'rectangle' && tempRect && (
-                 <div style={{
-                    position: 'absolute',
-                    left: tempRect.x,
-                    top: tempRect.y,
-                    width: tempRect.width,
-                    height: tempRect.height,
-                    border: `${currentLineWidth}px solid ${currentColor}`,
-                    pointerEvents: 'none',
-                    boxSizing: 'border-box'
-                 }} />
-            )}
-
-            {isDrawing && selectedTool === 'circle' && tempRect && (
-                 <div style={{
-                    position: 'absolute',
-                    left: tempRect.x,
-                    top: tempRect.y,
-                    width: tempRect.width,
-                    height: tempRect.height,
-                    border: `${currentLineWidth}px solid ${currentColor}`,
-                    borderRadius: '50%',
-                    pointerEvents: 'none',
-                    boxSizing: 'border-box'
-                 }} />
-            )}
-
-            {lineStartPoint && selectedTool === 'line' && tempLine && (
-              <svg 
-                width={canvasSize.width}
-                height={canvasSize.height}
-                style={{ position: 'absolute', overflow: 'visible', pointerEvents: 'none', left: 0, top: 0 }}
-              >
-                <line 
-                  x1={tempLine.p1.x} 
-                  y1={tempLine.p1.y} 
-                  x2={tempLine.p2.x} 
-                  y2={tempLine.p2.y} 
-                  stroke={currentColor} 
-                  strokeWidth={currentLineWidth} 
+              {currentMousePos && (
+                <line
+                  x1={drawingPolygonPoints[drawingPolygonPoints.length - 1].x}
+                  y1={drawingPolygonPoints[drawingPolygonPoints.length - 1].y}
+                  x2={currentMousePos.x}
+                  y2={currentMousePos.y}
+                  stroke={currentColor}
+                  strokeWidth={currentLineWidth}
                   strokeLinecap="round"
-                  strokeDasharray={currentLineDash ? currentLineDash.join(',') : undefined}
-                  opacity={0.5}
+                  strokeDasharray="5,5"
                 />
-              </svg>
-            )}
+              )}
+              {isSnappedToStart && drawingPolygonPoints.length > 0 && (
+                <circle
+                  cx={drawingPolygonPoints[0].x}
+                  cy={drawingPolygonPoints[0].y}
+                  r={10 / zoomScale}
+                  fill="rgba(255, 255, 0, 0.5)"
+                  stroke="black"
+                  strokeWidth={1 / zoomScale}
+                />
+              )}
+            </svg>
+          )}
 
-            {arrowStartPoint && selectedTool === 'arrow' && tempArrow && (
-              <svg 
-                width={canvasSize.width}
-                height={canvasSize.height}
-                style={{ position: 'absolute', overflow: 'visible', pointerEvents: 'none', left: 0, top: 0, opacity: 0.5 }}
-              >
-                {(() => {
-                  const p1 = tempArrow.p1;
-                  const p2 = tempArrow.p2;
-                  const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-                  const width = currentLineWidth;
-                  const headLen = Math.max(10, width * 3);
-                  const color = currentColor;
-                  
-                  const drawHead = (x: number, y: number, angle: number, isSolid: boolean) => {
-                     const actualHeadLen = isSolid ? headLen * 1.8 : headLen;
-                     if (isSolid) {
-                         const pTip = { x: x, y: y };
-                         const pBack = { x: x - actualHeadLen * Math.cos(angle), y: y - actualHeadLen * Math.sin(angle) };
-                         const pLeft = { 
-                             x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle - Math.PI/2),
-                             y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle - Math.PI/2)
-                         };
-                         const pRight = { 
-                             x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle + Math.PI/2),
-                             y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle + Math.PI/2)
-                         };
-                         return <polygon points={`${pTip.x},${pTip.y} ${pLeft.x},${pLeft.y} ${pRight.x},${pRight.y}`} fill={color} />;
-                     } else {
-                         const xLeft = x - headLen * Math.cos(angle - Math.PI / 6);
-                         const yLeft = y - headLen * Math.sin(angle - Math.PI / 6);
-                         const xRight = x - headLen * Math.cos(angle + Math.PI / 6);
-                         const yRight = y - headLen * Math.sin(angle + Math.PI / 6);
-                         return <polyline points={`${xLeft},${yLeft} ${x},${y} ${xRight},${yRight}`} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />;
-                     }
-                  };
+          {isDrawing && selectedTool === 'rectangle' && tempRect && (
+            <div style={{
+              position: 'absolute',
+              left: tempRect.x,
+              top: tempRect.y,
+              width: tempRect.width,
+              height: tempRect.height,
+              border: `${currentLineWidth}px solid ${currentColor}`,
+              pointerEvents: 'none',
+              boxSizing: 'border-box'
+            }} />
+          )}
 
-                  return (
-                    <>
-                      <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={color} strokeWidth={width} strokeLinecap="round" />
-                      {currentArrowType === 'standard' && drawHead(p2.x, p2.y, angle, false)}
-                      {currentArrowType === 'double' && (
-                        <>
-                          {drawHead(p1.x, p1.y, angle + Math.PI, false)}
-                          {drawHead(p2.x, p2.y, angle, false)}
-                        </>
-                      )}
-                      {currentArrowType === 'solid' && drawHead(p2.x, p2.y, angle, true)}
-                      {currentArrowType === 'solid-double' && (
-                        <>
-                          {drawHead(p1.x, p1.y, angle + Math.PI, true)}
-                          {drawHead(p2.x, p2.y, angle, true)}
-                        </>
-                      )}
-                    </>
-                  );
-                })()}
-              </svg>
-            )}
-         </div>
+          {isDrawing && selectedTool === 'circle' && tempRect && (
+            <div style={{
+              position: 'absolute',
+              left: tempRect.x,
+              top: tempRect.y,
+              width: tempRect.width,
+              height: tempRect.height,
+              border: `${currentLineWidth}px solid ${currentColor}`,
+              borderRadius: '50%',
+              pointerEvents: 'none',
+              boxSizing: 'border-box'
+            }} />
+          )}
+
+          {lineStartPoint && selectedTool === 'line' && tempLine && (
+            <svg
+              width={canvasSize.width}
+              height={canvasSize.height}
+              style={{ position: 'absolute', overflow: 'visible', pointerEvents: 'none', left: 0, top: 0 }}
+            >
+              <line
+                x1={tempLine.p1.x}
+                y1={tempLine.p1.y}
+                x2={tempLine.p2.x}
+                y2={tempLine.p2.y}
+                stroke={currentColor}
+                strokeWidth={currentLineWidth}
+                strokeLinecap="round"
+                strokeDasharray={currentLineDash ? currentLineDash.join(',') : undefined}
+                opacity={0.5}
+              />
+            </svg>
+          )}
+
+          {arrowStartPoint && selectedTool === 'arrow' && tempArrow && (
+            <svg
+              width={canvasSize.width}
+              height={canvasSize.height}
+              style={{ position: 'absolute', overflow: 'visible', pointerEvents: 'none', left: 0, top: 0, opacity: 0.5 }}
+            >
+              {(() => {
+                const p1 = tempArrow.p1;
+                const p2 = tempArrow.p2;
+                const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                const width = currentLineWidth;
+                const headLen = Math.max(10, width * 3);
+                const color = currentColor;
+
+                const drawHead = (x: number, y: number, angle: number, isSolid: boolean) => {
+                  const actualHeadLen = isSolid ? headLen * 1.8 : headLen;
+                  if (isSolid) {
+                    const pTip = { x: x, y: y };
+                    const pBack = { x: x - actualHeadLen * Math.cos(angle), y: y - actualHeadLen * Math.sin(angle) };
+                    const pLeft = {
+                      x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle - Math.PI / 2),
+                      y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle - Math.PI / 2)
+                    };
+                    const pRight = {
+                      x: pBack.x + (actualHeadLen * 0.4) * Math.cos(angle + Math.PI / 2),
+                      y: pBack.y + (actualHeadLen * 0.4) * Math.sin(angle + Math.PI / 2)
+                    };
+                    return <polygon points={`${pTip.x},${pTip.y} ${pLeft.x},${pLeft.y} ${pRight.x},${pRight.y}`} fill={color} />;
+                  } else {
+                    const xLeft = x - headLen * Math.cos(angle - Math.PI / 6);
+                    const yLeft = y - headLen * Math.sin(angle - Math.PI / 6);
+                    const xRight = x - headLen * Math.cos(angle + Math.PI / 6);
+                    const yRight = y - headLen * Math.sin(angle + Math.PI / 6);
+                    return <polyline points={`${xLeft},${yLeft} ${x},${y} ${xRight},${yRight}`} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />;
+                  }
+                };
+
+                return (
+                  <>
+                    <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={color} strokeWidth={width} strokeLinecap="round" />
+                    {currentArrowType === 'standard' && drawHead(p2.x, p2.y, angle, false)}
+                    {currentArrowType === 'double' && (
+                      <>
+                        {drawHead(p1.x, p1.y, angle + Math.PI, false)}
+                        {drawHead(p2.x, p2.y, angle, false)}
+                      </>
+                    )}
+                    {currentArrowType === 'solid' && drawHead(p2.x, p2.y, angle, true)}
+                    {currentArrowType === 'solid-double' && (
+                      <>
+                        {drawHead(p1.x, p1.y, angle + Math.PI, true)}
+                        {drawHead(p2.x, p2.y, angle, true)}
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+            </svg>
+          )}
+        </div>
       </div>
     </div>
   )
