@@ -11,12 +11,14 @@ import LineEditor from './LineEditor'
 import ArrowEditor from './ArrowEditor'
 import PolygonEditor from './PolygonEditor'
 import TextEditor from './TextEditor'
+import ImageEditor from './ImageEditor'
 import type { RectangleEditorRef } from './RectangleEditor'
 import type { LineEditorRef } from './LineEditor'
 import type { CircleEditorRef } from './CircleEditor'
 import type { ArrowEditorRef } from './ArrowEditor'
 import type { PolygonEditorRef } from './PolygonEditor'
 import type { TextEditorRef, TextStyle } from './TextEditor'
+import type { ImageEditorRef } from './ImageEditor'
 interface Point {
   x: number
   y: number
@@ -29,7 +31,7 @@ interface Stroke {
   color: string
   width: number
   isErased: boolean
-  tool: 'pencil' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'polygon' | 'text'
+  tool: 'pencil' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'polygon' | 'text' | 'image'
   isFilled?: boolean
   lineDash?: number[]
   arrowType?: 'standard' | 'double' | 'solid' | 'solid-double'
@@ -45,6 +47,10 @@ interface Stroke {
   backgroundColor?: string
   textWidth?: number
   textHeight?: number
+  // Image Properties
+  imageSrc?: string
+  imageWidth?: number
+  imageHeight?: number
 }
 
 interface HistoryAction {
@@ -65,6 +71,8 @@ interface CanvasMainProps {
 const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const { selectedTool, currentColor, currentLineWidth, currentLineDash = [], currentArrowType = 'standard', eraserSize, onZoomChange } = props;
   const currentFontSize = useCanvasStore((state) => state.currentFontSize)
+  const currentImage = useCanvasStore((state) => state.currentImage)
+  const setCurrentImage = useCanvasStore((state) => state.setCurrentImage)
   const [isDrawing, setIsDrawing] = useState(false)
   const lastPositionRef = useRef<{ x: number, y: number } | null>(null)
   const eraserCursorRef = useRef<HTMLDivElement>(null)
@@ -82,7 +90,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const [isEditingArrow, setIsEditingArrow] = useState(false);
   const [isEditingPolygon, setIsEditingPolygon] = useState(false);
   const [isEditingText, setIsEditingText] = useState(false);
+  const [isEditingImage, setIsEditingImage] = useState(false);
   const [tempRect, setTempRect] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+  const [tempImageRect, setTempImageRect] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+  const [editingImageElement, setEditingImageElement] = useState<HTMLImageElement | null>(null);
   const [tempLine, setTempLine] = useState<{ p1: Point, p2: Point } | null>(null);
   const [tempArrow, setTempArrow] = useState<{ p1: Point, p2: Point } | null>(null);
   const [tempPolygonPoints, setTempPolygonPoints] = useState<Point[] | null>(null);
@@ -106,6 +117,61 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const arrowEditorRef = useRef<ArrowEditorRef>(null);
   const polygonEditorRef = useRef<PolygonEditorRef>(null);
   const textEditorRef = useRef<TextEditorRef>(null);
+  const imageEditorRef = useRef<ImageEditorRef>(null);
+  const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
+
+  // Image Tool Initialization
+  useEffect(() => {
+    if (selectedTool === 'image' && currentImage) {
+      // Initialize image editing
+      const imageWidth = currentImage.width;
+      const imageHeight = currentImage.height;
+      
+      // Default to a reasonable size if too large, maintaining aspect ratio
+      // Or just center it on screen
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      
+      // Initial scale calculation to fit in screen if needed
+      let displayWidth = imageWidth;
+      let displayHeight = imageHeight;
+      const maxDimension = Math.min(windowWidth, windowHeight) * 0.5; // 50% of screen
+      
+      if (displayWidth > maxDimension || displayHeight > maxDimension) {
+        const scale = Math.min(maxDimension / displayWidth, maxDimension / displayHeight);
+        displayWidth *= scale;
+        displayHeight *= scale;
+      }
+
+      // Ensure canvas size is initialized
+      if (canvasSize.width === 0 || canvasSize.height === 0) return;
+
+      // Calculate viewport center in canvas coordinates
+      // Screen Center corresponds to: WindowCenter - (CanvasOffset / ZoomScale)
+      // Note: We use window dimensions because the editor container has an inner offset 
+      // that compensates for the canvas padding.
+      const viewportCenterX = window.innerWidth / 2 - canvasOffset.x / zoomScale;
+      const viewportCenterY = window.innerHeight / 2 - canvasOffset.y / zoomScale;
+      
+      const x = viewportCenterX - displayWidth / 2;
+      const y = viewportCenterY - displayHeight / 2;
+      
+      setTempImageRect({
+        x,
+        y,
+        width: displayWidth,
+        height: displayHeight
+      });
+      setEditingImageElement(currentImage);
+      setIsEditingImage(true);
+      
+      // Clear current image from store so we don't re-trigger
+      // setCurrentImage(null); // Actually better to keep it until confirmed or cancelled?
+      // If we clear it, we might lose it if component re-renders.
+      // But we set local state `editingImageElement`.
+      setCurrentImage(null);
+    }
+  }, [selectedTool, currentImage, canvasOffset, zoomScale, canvasSize, setCurrentImage]);
 
   // 工具更改时自动确认
   useEffect(() => {
@@ -127,7 +193,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     if (isEditingText && selectedTool !== 'text') {
       textEditorRef.current?.confirm();
     }
-  }, [selectedTool, isEditingRectangle, isEditingCircle, isEditingLine, isEditingArrow, isEditingPolygon, isEditingText]);
+    if (isEditingImage && selectedTool !== 'image') {
+      imageEditorRef.current?.confirm();
+    }
+  }, [selectedTool, isEditingRectangle, isEditingCircle, isEditingLine, isEditingArrow, isEditingPolygon, isEditingText, isEditingImage]);
 
   // 多画布架构状态
   const [activeUserIds, setActiveUserIds] = useState<Set<string>>(new Set(['local']));
@@ -363,6 +432,27 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
             fontSize
           );
         });
+      } else if (stroke.tool === 'image') {
+        if (!stroke.imageSrc || stroke.points.length < 1) return;
+
+        let img = imageCacheRef.current.get(stroke.imageSrc);
+        if (!img) {
+          img = new Image();
+          img.src = stroke.imageSrc;
+          img.onload = () => {
+            redrawLayer(stroke.userId);
+          };
+          imageCacheRef.current.set(stroke.imageSrc, img);
+        }
+
+        if (img.complete) {
+          const p1 = stroke.points[0];
+          const w = stroke.imageWidth || 0;
+          const h = stroke.imageHeight || 0;
+          if (w > 0 && h > 0) {
+            ctx.drawImage(img, p1.x, p1.y, w, h);
+          }
+        }
       } else {
         ctx.strokeStyle = stroke.color;
         ctx.lineWidth = stroke.width;
@@ -656,6 +746,27 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           fontSize
         );
       });
+    } else if (stroke.tool === 'image') {
+      if (!stroke.imageSrc || stroke.points.length < 1) return;
+
+      let img = imageCacheRef.current.get(stroke.imageSrc);
+      if (!img) {
+        img = new Image();
+        img.src = stroke.imageSrc;
+        img.onload = () => {
+          redrawLayer(stroke.userId);
+        };
+        imageCacheRef.current.set(stroke.imageSrc, img);
+      }
+
+      if (img.complete) {
+        const p1 = stroke.points[0];
+        const w = stroke.imageWidth || 0;
+        const h = stroke.imageHeight || 0;
+        if (w > 0 && h > 0) {
+          ctx.drawImage(img, p1.x, p1.y, w, h);
+        }
+      }
     } else {
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = stroke.width;
@@ -668,7 +779,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       }
       ctx.stroke();
     }
-  }, []);
+  }, [redrawLayer]);
   const handleConfirmText = useCallback((rect: { x: number, y: number, width: number, height: number }, text: string, style: TextStyle) => {
     const uid = websocketService.getUserId() || 'local';
     ensureUserLayer(uid);
@@ -712,6 +823,49 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const handleCancelText = useCallback(() => {
     setIsEditingText(false);
     setTempTextPosition(null);
+  }, []);
+
+  const handleConfirmImage = useCallback((rect: { x: number, y: number, width: number, height: number }) => {
+    if (!editingImageElement) return;
+
+    const uid = websocketService.getUserId() || 'local';
+    ensureUserLayer(uid);
+
+    const newStroke: Stroke = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: uid,
+      points: [{ x: rect.x, y: rect.y }],
+      color: '#000000', // Not used
+      width: 0, // Not used
+      isErased: false,
+      tool: 'image',
+      imageSrc: editingImageElement.src,
+      imageWidth: rect.width,
+      imageHeight: rect.height
+    };
+
+    strokesRef.current.push(newStroke);
+    drawStroke(newStroke);
+
+    historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
+    redoStackRef.current = [];
+
+    websocketService.sendDrawEvent({
+      type: 'stroke',
+      stroke: newStroke
+    });
+
+    setIsEditingImage(false);
+    setTempImageRect(null);
+    setEditingImageElement(null);
+    useToolStore.getState().setSelectedTool('pencil');
+  }, [drawStroke, ensureUserLayer, editingImageElement]);
+
+  const handleCancelImage = useCallback(() => {
+    setIsEditingImage(false);
+    setTempImageRect(null);
+    setEditingImageElement(null);
+    useToolStore.getState().setSelectedTool('pencil');
   }, []);
 
 
@@ -1724,6 +1878,17 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
               zoomScale={zoomScale}
               onConfirm={handleConfirmText}
               onCancel={handleCancelText}
+            />
+          )}
+
+          {isEditingImage && tempImageRect && editingImageElement && (
+            <ImageEditor
+              ref={imageEditorRef}
+              initialRect={tempImageRect}
+              image={editingImageElement}
+              zoomScale={zoomScale}
+              onConfirm={handleConfirmImage}
+              onCancel={handleCancelImage}
             />
           )}
 

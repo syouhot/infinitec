@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import React from 'react'
 import { 
   FaPencil, 
@@ -8,15 +8,35 @@ import {
   FaArrowRight, 
   FaDrawPolygon, 
   FaFont,
-  FaEraser
+  FaEraser,
+  FaImage
 } from 'react-icons/fa6'
-import { useToolStore } from '../store'
+import { useToolStore, useCanvasStore } from '../store'
 import '../styles/Toolbar.css'
 
 function Toolbar() {
     const [isOpen, setIsOpen] = useState(false)
     const selectedTool = useToolStore((state) => state.selectedTool)
     const setSelectedTool = useToolStore((state) => state.setSelectedTool)
+    const setCurrentImage = useCanvasStore((state) => state.setCurrentImage)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          const img = new Image()
+          img.onload = () => {
+            setCurrentImage(img)
+            setSelectedTool('image')
+          }
+          img.src = event.target?.result as string
+        }
+        reader.readAsDataURL(file)
+      }
+      e.target.value = ''
+    }
 
     const tools = [
     { id: 'pencil', icon: FaPencil, label: '画笔' },
@@ -26,7 +46,8 @@ function Toolbar() {
     { id: 'arrow', icon: FaArrowRight, label: '箭头' },
     { id: 'polygon', icon: FaDrawPolygon, label: '多边形' },
     { id: 'text', icon: FaFont, label: '文本' },
-    { id: 'eraser', icon: FaEraser, label: '橡皮擦' }
+    { id: 'eraser', icon: FaEraser, label: '橡皮擦' },
+    { id: 'image', icon: FaImage, label: '图片' }
   ]
 
   return (
@@ -42,7 +63,13 @@ function Toolbar() {
           <button
             key={tool.id}
             className={`tool-button ${selectedTool === tool.id ? 'active' : ''}`}
-            onClick={() => setSelectedTool(tool.id)}
+            onClick={() => {
+              if (tool.id === 'image') {
+                fileInputRef.current?.click()
+              } else {
+                setSelectedTool(tool.id)
+              }
+            }}
             title={tool.label}
           >
             <tool.icon size={20} />
@@ -50,6 +77,13 @@ function Toolbar() {
           </button>
         ))}
       </div>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/jpeg,image/png,image/jpg"
+        style={{ display: 'none' }}
+      />
     </div>
   )
 }
