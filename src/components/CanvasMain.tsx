@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHand
 import { CANVAS_CONFIG } from '../constants'
 import { createBoundary, clampOffset, calculateClampedOffset } from '../util/boundary'
 import { websocketService } from '../services/websocketService'
-import { useAppStore, useToolStore, useCanvasStore } from '../store/index' // Assuming store exists for userId
+import { useAppStore, useToolStore, useCanvasStore } from '../store/index' // 假设 store 存在用于 userId
 import '../styles/CanvasMain.css'
 
 import RectangleEditor from './RectangleEditor'
@@ -79,7 +79,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const lineEditorRef = useRef<LineEditorRef>(null);
   const arrowEditorRef = useRef<ArrowEditorRef>(null);
 
-  // Auto-confirm when tool changes
+  // 工具更改时自动确认
   useEffect(() => {
     if (isEditingRectangle && selectedTool !== 'rectangle') {
       rectangleEditorRef.current?.confirm();
@@ -95,11 +95,11 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     }
   }, [selectedTool, isEditingRectangle, isEditingCircle, isEditingLine, isEditingArrow]);
   
-  // Multi-canvas architecture state
+  // 多画布架构状态
   const [activeUserIds, setActiveUserIds] = useState<Set<string>>(new Set(['local']));
   const layerRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
-  // Helper to ensure user ID is tracked
+  // 辅助函数确保跟踪用户ID
   const ensureUserLayer = useCallback((uid: string) => {
     setActiveUserIds(prev => {
       if (prev.has(uid)) return prev;
@@ -107,7 +107,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     });
   }, []);
 
-  // Helper to draw a single segment (incremental update)
+  // 辅助函数绘制单个线段（增量更新）
   const drawSegment = useCallback((uid: string, p1: Point, p2: Point, color: string, width: number, tool: string) => {
     const canvas = layerRefs.current.get(uid);
     if (!canvas) return;
@@ -139,23 +139,23 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear this user's canvas
+    // 清除此用户的画布
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
 
-    // Redraw all strokes for this user
-    // Note: We need to re-apply the transform for drawing?
-    // The canvas has a transform applied via updateSizes (ctx.setTransform).
-    // But clearRect needs identity or full clear.
-    // After clear, we should restore the transform.
-    // The `updateSizes` sets the default transform.
-    // But here we might have lost it if we didn't save/restore properly or if we set identity.
-    // Actually, `updateSizes` sets the transform on the context state.
-    // `ctx.clearRect` clears pixels but doesn't reset transform.
-    // However, if we do `ctx.setTransform(1,0,0,1,0,0)` to clear, we lose the padding transform.
-    // So we must reset it to padding transform after clearing.
+    // 为此用户重绘所有笔画
+    // 注意：我们需要重新应用变换进行绘制吗？
+    // 画布通过 updateSizes (ctx.setTransform) 应用了变换。
+    // 但 clearRect 需要单位矩阵或完全清除。
+    // 清除后，我们应该恢复变换。
+    // `updateSizes` 设置默认变换。
+    // 但在这里，如果我们没有正确保存/恢复或设置了单位矩阵，可能会丢失它。
+    // 实际上，`updateSizes` 在上下文状态上设置变换。
+    // `ctx.clearRect` 清除像素但不重置变换。
+    // 然而，如果我们执行 `ctx.setTransform(1,0,0,1,0,0)` 来清除，我们会丢失填充变换。
+    // 所以我们必须在清除后将其重置为填充变换。
     
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
@@ -215,7 +215,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         const h = Math.abs(p1.y - p2.y);
         
         ctx.beginPath();
-        // Draw ellipse/circle
+        // 绘制椭圆/圆形
         ctx.ellipse(x + w/2, y + h/2, w/2, h/2, 0, 0, 2 * Math.PI);
         
         if (stroke.isFilled) {
@@ -276,8 +276,8 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       ctx.lineWidth = stroke.width;
       ctx.globalCompositeOperation = 'destination-out';
       
-      // For eraser, we need to draw segments individually to match local behavior (area-based)
-      // instead of a single path which might behave differently with destination-out
+      // 对于橡皮擦，我们需要单独绘制线段以匹配本地行为（基于区域）
+      // 而不是单个路径，这可能与 destination-out 表现不同
       ctx.beginPath();
       ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
       for (let i = 1; i < stroke.points.length; i++) {
@@ -350,13 +350,13 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
-      // Draw Main Line
+      // 绘制主线
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
       ctx.stroke();
 
-      // Draw Arrow Heads
+      // 绘制箭头
       const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
       const headLen = Math.max(10, width * 3);
 
@@ -424,7 +424,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         const stroke = data.stroke;
         ensureUserLayer(stroke.userId);
         
-        // Check if stroke already exists (unlikely but safe)
+        // 检查笔画是否已存在（不太可能但安全）
         if (!strokesRef.current.find(s => s.id === stroke.id)) {
             strokesRef.current.push(stroke);
             drawStroke(stroke);
@@ -535,16 +535,16 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   }, [redrawLayer]);
 
   useEffect(() => {
-    // Reset tools when component unmounts
+    // 组件卸载时重置工具
     return () => {
-      // We need to import store setters inside the component or use the store hooks
-      // Since we are inside the component, we can use the props or access store if needed.
-      // But props are read-only. We should use the store actions directly or let the parent handle it.
-      // However, the requirement is "exit canvas", which implies unmounting.
-      // We can use the store hooks here.
+      // 我们需要在组件内导入 store 设置器或使用 store hooks
+      // 由于我们在组件内，可以使用 props 或访问 store（如果需要）。
+      // 但 props 是只读的。我们应该直接使用 store actions 或让父组件处理。
+      // 然而，需求是"退出画布"，这意味着卸载。
+      // 我们可以在这里使用 store hooks。
       useToolStore.getState().setSelectedTool('pencil');
-      useCanvasStore.getState().setLineWidth(2); // Assuming 2 is default
-      useCanvasStore.getState().setColor(0); // Assuming black is default
+      useCanvasStore.getState().setLineWidth(2); // 假设 2 是默认值
+      useCanvasStore.getState().setColor(0); // 假设黑色是默认值
     };
   }, []);
 
@@ -588,7 +588,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       setCanvasSize(newCanvasSize)
       setGridSize(newCanvasSize)
 
-      // Update all layers
+      // 更新所有图层
       layerRefs.current.forEach(canvas => {
         canvas.width = newCanvasSize.width
         canvas.height = newCanvasSize.height
@@ -598,7 +598,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         ctx?.setTransform(1, 0, 0, 1, offsetX, offsetY)
       })
       
-      redrawAllLayers(); // Redraw content after resize
+      redrawAllLayers(); // 调整大小后重绘内容
 
       setBoundary(createBoundary(newCanvasSize.width, newCanvasSize.height, windowWidth, windowHeight))
     }
@@ -648,7 +648,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     }
     if (e.button === 2) return
 
-    // Auto-confirm editing shapes when starting a new drawing interaction
+    // 开始新的绘制交互时自动确认编辑形状
     if (isEditingRectangle) {
       rectangleEditorRef.current?.confirm();
     }
@@ -685,7 +685,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     if (selectedTool === 'line') {
       if (lineStartPoint) {
-        // Second click - Finish line and enter edit mode
+        // 第二次点击 - 完成线条并进入编辑模式
         let p2 = startPoint;
         if (e.ctrlKey) {
              const dx = startPoint.x - lineStartPoint.x;
@@ -693,7 +693,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
              const angle = Math.atan2(dy, dx);
              const distance = Math.sqrt(dx * dx + dy * dy);
              
-             // Snap to 15 degrees (PI/12 radians)
+             // 吸附到15度（PI/12弧度）
              const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
              
              const snappedX = lineStartPoint.x + distance * Math.cos(snapAngle);
@@ -705,7 +705,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         setIsEditingLine(true);
         setLineStartPoint(null);
       } else {
-        // First click - Start line
+        // 第一次点击 - 开始线条
         setLineStartPoint(startPoint);
         setTempLine({ p1: startPoint, p2: startPoint });
         setIsEditingLine(false);
@@ -715,7 +715,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     if (selectedTool === 'arrow') {
       if (arrowStartPoint) {
-        // Second click - Finish arrow and enter edit mode
+        // 第二次点击 - 完成箭头并进入编辑模式
         let p2 = startPoint;
         if (e.ctrlKey) {
              const dx = startPoint.x - arrowStartPoint.x;
@@ -723,7 +723,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
              const angle = Math.atan2(dy, dx);
              const distance = Math.sqrt(dx * dx + dy * dy);
              
-             // Snap to 15 degrees (PI/12 radians)
+             // 吸附到15度（PI/12弧度）
              const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
              
              const snappedX = arrowStartPoint.x + distance * Math.cos(snapAngle);
@@ -735,7 +735,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         setIsEditingArrow(true);
         setArrowStartPoint(null);
       } else {
-        // First click - Start arrow
+        // 第一次点击 - 开始箭头
         setArrowStartPoint(startPoint);
         setTempArrow({ p1: startPoint, p2: startPoint });
         setIsEditingArrow(false);
@@ -759,10 +759,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     currentStrokeRef.current = newStroke
     strokesRef.current.push(newStroke)
     
-    // Draw initial dot
+    // 绘制初始点
     drawSegment(uid, startPoint, startPoint, currentColor, selectedTool === 'eraser' ? eraserSize : currentLineWidth, selectedTool);
 
-    // History
+    // 历史记录
     historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
     redoStackRef.current = [];
 
@@ -782,9 +782,9 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const rafIdRef = useRef<number | null>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Persist event synthetic properties if needed, but for rAF we usually need the data immediately.
-    // React events are pooled in older versions, but in newer React they are not.
-    // However, to be safe and efficient, we extract needed values.
+    // 如果需要，保留事件合成属性，但对于 rAF 我们通常需要立即获取数据。
+    // 在旧版本的 React 中事件是池化的，但在新版本中不是。
+    // 然而，为了安全和高效，我们提取所需的值。
     const clientX = e.clientX;
     const clientY = e.clientY;
     const isCtrlPressed = e.ctrlKey;
@@ -829,7 +829,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
              const angle = Math.atan2(dy, dx);
              const distance = Math.sqrt(dx * dx + dy * dy);
              
-             // Snap to 15 degrees (PI/12 radians)
+             // 吸附到15度（PI/12弧度）
              const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
              
              const snappedX = lineStartPoint.x + distance * Math.cos(snapAngle);
@@ -849,7 +849,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
              const angle = Math.atan2(dy, dx);
              const distance = Math.sqrt(dx * dx + dy * dy);
              
-             // Snap to 15 degrees (PI/12 radians)
+             // 吸附到15度（PI/12弧度）
              const snapAngle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
              
              const snappedX = arrowStartPoint.x + distance * Math.cos(snapAngle);
@@ -872,18 +872,18 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           const deltaY = currentPoint.y - start.y;
 
           if (isCtrlPressed) {
-            // Center-based drawing
-            // Distance from center to current mouse point determines half-width/height
+            // 基于中心的绘制
+            // 从中心到当前鼠标点的距离决定半宽/半高
             const halfWidth = Math.abs(deltaX);
             const halfHeight = Math.abs(deltaY);
             
-            // Since previous logic for Ctrl was Square, we keep it: Square from Center
-            // To make it just "From Center" without Square, we would use halfWidth and halfHeight directly.
-            // But usually modifier keys add constraints. 
-            // The user asked "When holding Ctrl... draw with center point as center".
-            // The previous request was "Ctrl... draw a square".
-            // It is safest to assume they want "Square FROM Center".
-            // Let's use the max dimension for square.
+            // 由于之前 Ctrl 的逻辑是正方形，我们保持它：从中心绘制正方形
+            // 要使其只是"从中心"而没有正方形，我们会直接使用 halfWidth 和 halfHeight。
+            // 但通常修饰键会添加约束。
+            // 用户要求"按住 Ctrl... 以中心点为中心绘制"。
+            // 之前的请求是"Ctrl... 绘制正方形"。
+            // 最安全的假设是他们想要"从中心绘制正方形"。
+            // 让我们使用最大维度作为正方形。
             const size = Math.max(halfWidth, halfHeight);
             
             setTempRect({
@@ -912,10 +912,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         
         const uid = websocketService.getUserId() || 'local';
 
-        // Incremental draw
+        // 增量绘制
         drawSegment(uid, lastPositionRef.current, currentPoint, currentColor, selectedTool === 'eraser' ? eraserSize : currentLineWidth, selectedTool);
 
-        // Update data
+        // 更新数据
         currentStrokeRef.current.points.push(currentPoint);
 
         lastPositionRef.current = currentPoint
@@ -926,20 +926,20 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     const clientX = e.clientX;
     const clientY = e.clientY;
     
-    // Using requestAnimationFrame for cursor movement as well
-    // Note: We can merge this with the above rAF if we refactor, but for now separate rAF is fine or we can assume handleMouseMove calls both.
-    // Actually, calling rAF twice per mouse move might be redundant.
-    // Let's optimize by not using rAF here if we can avoid it, OR use direct transform.
-    // Direct transform is very fast. The issue is likely layout thrashing from top/left.
+    // 使用 requestAnimationFrame 进行光标移动
+    // 注意：如果我们重构，可以将其与上面的 rAF 合并，但现在单独的 rAF 也可以，或者我们可以假设 handleMouseMove 调用两者。
+    // 实际上，每次鼠标移动调用两次 rAF 可能是多余的。
+    // 让我们通过尽可能不在这里使用 rAF 来优化，或者使用直接变换。
+    // 直接变换非常快。问题可能来自 top/left 的布局抖动。
     
     if (selectedTool === 'eraser' && eraserCursorRef.current) {
       const size = eraserSize * zoomScale;
-      // Use transform for GPU acceleration
+      // 使用变换进行 GPU 加速
       eraserCursorRef.current.style.display = 'block';
       eraserCursorRef.current.style.transform = `translate3d(${clientX - size / 2}px, ${clientY - size / 2}px, 0)`;
       eraserCursorRef.current.style.width = `${size}px`;
       eraserCursorRef.current.style.height = `${size}px`;
-      // Reset top/left to 0 since we use transform
+      // 重置 top/left 为 0，因为我们使用变换
       eraserCursorRef.current.style.top = '0px';
       eraserCursorRef.current.style.left = '0px';
     } else if (eraserCursorRef.current) {
@@ -989,8 +989,8 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     let p1 = { x: rect.x, y: rect.y };
     let p2 = { x: rect.x + rect.width, y: rect.y + rect.height };
 
-    // Adjust for stroke width to match visual preview (border-box)
-    // Canvas draws stroke centered on path, so we move path inwards by width/2
+    // 调整笔画宽度以匹配视觉预览（border-box）
+    // Canvas 在路径上居中绘制笔画，所以我们将路径向内移动 width/2
     if (!style.isFilled) {
       const offset = style.width / 2;
       p1 = { x: rect.x + offset, y: rect.y + offset };
@@ -1011,11 +1011,11 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     strokesRef.current.push(newStroke);
     drawStroke(newStroke);
     
-    // History
+    // 历史记录
     historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
     redoStackRef.current = [];
 
-    // Websocket
+    // WebSocket
     websocketService.sendDrawEvent({
       type: 'stroke',
       stroke: newStroke
@@ -1032,7 +1032,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     let p1 = { x: rect.x, y: rect.y };
     let p2 = { x: rect.x + rect.width, y: rect.y + rect.height };
 
-    // Adjust for stroke width to match visual preview (border-box)
+    // 调整笔画宽度以匹配视觉预览（border-box）
     if (!style.isFilled) {
       const offset = style.width / 2;
       p1 = { x: rect.x + offset, y: rect.y + offset };
@@ -1053,11 +1053,11 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     strokesRef.current.push(newStroke);
     drawStroke(newStroke);
     
-    // History
+    // 历史记录
     historyRef.current.push({ type: 'draw', strokeIds: [newStroke.id] });
     redoStackRef.current = [];
 
-    // Websocket
+    // WebSocket
     websocketService.sendDrawEvent({
       type: 'stroke',
       stroke: newStroke
@@ -1090,7 +1090,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       isErased: false,
       tool: 'line',
       isFilled: false,
-      lineDash: style.lineDash || currentLineDash // Use style dash or current prop
+      lineDash: style.lineDash || currentLineDash // 使用样式虚线或当前属性
     }
 
     strokesRef.current.push(newStroke);

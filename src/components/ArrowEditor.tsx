@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { FaCheck, FaArrowsUpDownLeftRight, FaPalette, FaGripLines, FaXmark,FaArrowRight } from 'react-icons/fa6';
-import '../styles/LineEditor.css'; // Reuse LineEditor styles
+import '../styles/LineEditor.css'; // 复用 LineEditor 样式
 
 interface Point {
   x: number;
@@ -102,7 +102,7 @@ const ArrowEditor = forwardRef<ArrowEditorRef, ArrowEditorProps>(({
     onConfirm(p1, p2, { color, width, arrowType });
   };
 
-  // Calculate center for toolbar position
+  // 计算工具栏位置的中心点
   const centerX = (p1.x + p2.x) / 2;
   const centerY = (p1.y + p2.y) / 2;
   
@@ -114,14 +114,14 @@ const ArrowEditor = forwardRef<ArrowEditorRef, ArrowEditorProps>(({
     marginBottom: '10px'
   };
 
-  // Arrow Rendering Logic
+  // 箭头渲染逻辑
   const renderArrow = () => {
     const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-    // Head size scaling: at least 10px, scales with width
+    // 箭头大小缩放：至少10px，随宽度缩放
     const headLen = Math.max(10, width * 3); 
     const elements = [];
 
-    // Main line
+    // 主线
     elements.push(
       <line 
         key="main-line"
@@ -138,7 +138,7 @@ const ArrowEditor = forwardRef<ArrowEditorRef, ArrowEditorProps>(({
     const drawHead = (x: number, y: number, angle: number, isSolid: boolean, keyPrefix: string) => {
         const actualHeadLen = isSolid ? headLen * 1.8 : headLen;
         if (isSolid) {
-             // Filled Triangle
+             // 填充三角形
              const pTip = { x: x, y: y };
              const pBack = { x: x - actualHeadLen * Math.cos(angle), y: y - actualHeadLen * Math.sin(angle) };
              const pLeft = { 
@@ -157,7 +157,7 @@ const ArrowEditor = forwardRef<ArrowEditorRef, ArrowEditorProps>(({
                  />
              );
         } else {
-             // Open Line Arrow
+             // 开放线箭头
              const xLeft = x - headLen * Math.cos(angle - Math.PI / 6);
              const yLeft = y - headLen * Math.sin(angle - Math.PI / 6);
              const xRight = x - headLen * Math.cos(angle + Math.PI / 6);
@@ -193,12 +193,12 @@ const ArrowEditor = forwardRef<ArrowEditorRef, ArrowEditorProps>(({
 
   return (
     <div className="line-editor-overlay" style={{ position: 'absolute', left: 0, top: 0, width: 0, height: 0, overflow: 'visible' }}>
-      {/* The Arrow Itself */}
+      {/* 箭头本身 */}
       <svg style={{ position: 'absolute', overflow: 'visible', pointerEvents: 'none' }}>
         {renderArrow()}
       </svg>
 
-      {/* Handles */}
+      {/* 控制点 */}
       <div 
         className="resize-handle handle-p1"
         onMouseDown={(e) => handleMouseDown(e, 'p1')}
@@ -218,7 +218,7 @@ const ArrowEditor = forwardRef<ArrowEditorRef, ArrowEditorProps>(({
         }}
       />
 
-      {/* Toolbar - Positioned at Center */}
+      {/* 工具栏 - 位于中心 */}
       <div 
         className="line-toolbar-wrapper"
         style={{
@@ -233,19 +233,19 @@ const ArrowEditor = forwardRef<ArrowEditorRef, ArrowEditorProps>(({
         }}
       >
           <div className="line-toolbar" style={uiStyle}>
-            {/* Confirm */}
+            {/* 确认 */}
             <button className="toolbar-btn primary" onClick={handleConfirm} title="确定绘制">
               <FaCheck />
             </button>
 
-            {/* Cancel */}
+            {/* 取消 */}
             <button className="toolbar-btn danger" onClick={onCancel} title="取消">
               <FaXmark />
             </button>
 
             <div className="toolbar-separator" />
 
-            {/* Move */}
+            {/* 移动 */}
             <button 
               className="toolbar-btn move-btn" 
               onMouseDown={(e) => handleMouseDown(e, 'move')}
@@ -257,7 +257,7 @@ const ArrowEditor = forwardRef<ArrowEditorRef, ArrowEditorProps>(({
 
             <div className="toolbar-separator" />
 
-            {/* Arrow Style */}
+            {/* 箭头样式 */}
             <div 
               className="toolbar-btn-wrapper"
               onMouseEnter={() => setShowStylePicker(true)}
@@ -320,7 +320,7 @@ const ArrowEditor = forwardRef<ArrowEditorRef, ArrowEditorProps>(({
 
             <div className="toolbar-separator" />
 
-            {/* Color */}
+            {/* 颜色 */}
             <div 
               className="toolbar-btn-wrapper"
               onMouseEnter={() => setShowColorPicker(true)}
@@ -355,7 +355,7 @@ const ArrowEditor = forwardRef<ArrowEditorRef, ArrowEditorProps>(({
               )}
             </div>
 
-            {/* Width */}
+            {/* 线条粗细 */}
             <div 
               className="toolbar-btn-wrapper"
               onMouseEnter={() => setShowWidthSlider(true)}

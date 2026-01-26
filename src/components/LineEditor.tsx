@@ -100,14 +100,14 @@ const LineEditor = forwardRef<LineEditorRef, LineEditorProps>(({
     onConfirm(p1, p2, { color, width, lineDash });
   };
 
-  // Calculate center for toolbar position
+  // 计算工具栏位置的中心点
   const centerX = (p1.x + p2.x) / 2;
   const centerY = (p1.y + p2.y) / 2;
   
-  // Calculate bounding box for the container (just to contain the UI, though handles are absolute)
-  // Actually, we can just render everything absolutely positioned relative to a container at 0,0 or similar.
-  // But to match RectangleEditor, we might want a container. 
-  // However, line can be diagonal. A bounding box container works.
+  // 计算容器的边界框（只是为了包含UI，尽管句柄是绝对定位的）
+  // 实际上，我们可以将所有内容相对于位于0,0或类似位置的容器进行绝对定位渲染。
+  // 但为了匹配 RectangleEditor，我们可能需要一个容器。
+  // 然而，线条可以是对角线的。边界框容器可以工作。
   const minX = Math.min(p1.x, p2.x);
   const minY = Math.min(p1.y, p2.y);
   const maxX = Math.max(p1.x, p2.x);

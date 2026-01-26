@@ -65,9 +65,9 @@ function CanvasModel() {
     setColor(colors[index])
     setShowColorPicker(false)
     setSelectedBottomIndex(null)
-    // Only switch to pencil if we are in pencil mode or if we want to force switch.
-    // User wants rectangle color selection.
-    // If selectedTool is rectangle, we should NOT switch to pencil.
+    // 只有在铅笔模式或我们想要强制切换时才切换到铅笔
+    // 用户想要矩形颜色选择
+    // 如果选中的工具是矩形，我们不应该切换到铅笔
     if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') {
       setSelectedTool('pencil')
     }
@@ -78,7 +78,7 @@ function CanvasModel() {
     setPickerColor(color)
     setShowColorPicker(true)
     setSelectedBottomIndex(index)
-    // Same here
+    // 这里相同
     if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') {
       setSelectedTool('pencil')
     }
@@ -88,7 +88,7 @@ function CanvasModel() {
     const newColor = e.target.value
     setPickerColor(newColor)
     setColor(newColor)
-    // Same here
+    // 这里也一样
     if (selectedTool !== 'rectangle' && selectedTool !== 'circle' && selectedTool !== 'line' && selectedTool !== 'arrow') {
       setSelectedTool('pencil')
     }
@@ -185,7 +185,7 @@ function CanvasModel() {
                         x1="0" y1="2" x2="100%" y2="2"
                         stroke="#333"
                         strokeWidth="2"
-                        strokeDasharray={style.dash.map(d => d / 2).join(',')} // Scale down for small button
+                        strokeDasharray={style.dash.map(d => d / 2).join(',')} // 为小按钮缩小比例
                       />
                     </svg>
 

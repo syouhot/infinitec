@@ -37,12 +37,12 @@ const RectangleEditor = forwardRef<RectangleEditorRef, RectangleEditorProps>(({
   const [width, setWidth] = useState(initialWidth);
   const [isFilled, setIsFilled] = useState(false);
   
-  // Sync with external initialColor changes if needed (e.g. from CanvasModel)
-  // This allows "linking" the color value as requested.
-  // When CanvasModel color changes, initialColor prop updates, so we should update local state.
+  // 如果需要，与外部 initialColor 更改同步（例如来自 CanvasModel）
+  // 这允许按照请求"链接"颜色值。
+  // 当 CanvasModel 颜色更改时，initialColor prop 更新，所以我们应该更新本地状态。
   useEffect(() => {
-    // Only update if it's different to avoid loops or overrides if we want local independence.
-    // However, the request implies linkage.
+    // 只有在不同时才更新，以避免循环或覆盖（如果我们想要本地独立性）。
+    // 然而，请求意味着链接。
     if (initialColor && initialColor !== color) {
        setColor(initialColor);
     }
@@ -61,7 +61,7 @@ const RectangleEditor = forwardRef<RectangleEditorRef, RectangleEditorProps>(({
   const rectStartRef = useRef<Rect | null>(null);
   const activeHandleRef = useRef<string | null>(null);
 
-  // Normalize rect to always have positive width/height
+  // 规范化矩形以始终具有正的宽度/高度
   const normalizedRect = {
     x: rect.width < 0 ? rect.x + rect.width : rect.x,
     y: rect.height < 0 ? rect.y + rect.height : rect.y,
@@ -71,12 +71,12 @@ const RectangleEditor = forwardRef<RectangleEditorRef, RectangleEditorProps>(({
 
   const handleMouseDown = (e: React.MouseEvent, handleType: string) => {
     e.stopPropagation();
-    e.preventDefault(); // Prevent text selection
+    e.preventDefault(); // 防止文本选择
     activeHandleRef.current = handleType;
     dragStartRef.current = { x: e.clientX, y: e.clientY };
     rectStartRef.current = { ...rect };
     
-    // Close popovers
+    // 关闭弹出框
     setShowColorPicker(false);
     setShowWidthSlider(false);
 
@@ -98,7 +98,7 @@ const RectangleEditor = forwardRef<RectangleEditorRef, RectangleEditorProps>(({
         y: startRect.y + dy
       });
     } else {
-      // Resize logic
+      // 调整大小逻辑
       let newX = startRect.x;
       let newY = startRect.y;
       let newW = startRect.width;
@@ -135,7 +135,7 @@ const RectangleEditor = forwardRef<RectangleEditorRef, RectangleEditorProps>(({
     onConfirm(normalizedRect, { color, width, isFilled });
   };
 
-  // Inverse scale for UI elements to maintain constant size
+  // UI 元素的逆缩放以保持恒定大小
   const uiStyle = {
     transform: `scale(${1 / zoomScale})`,
     transformOrigin: 'center bottom'
@@ -146,9 +146,9 @@ const RectangleEditor = forwardRef<RectangleEditorRef, RectangleEditorProps>(({
     transformOrigin: 'center'
   };
   
-  // Custom logic for handle positioning to center the handle on the corner/edge visually
-  // but we can just use simple scaling if handles are centered.
-  // The CSS handles translation.
+  // 自定义句柄定位逻辑，以便在视觉上将句柄居中在角/边上
+  // 但如果句柄居中，我们可以只使用简单的缩放。
+  // CSS 处理平移。
 
   return (
     <div 
@@ -178,19 +178,19 @@ const RectangleEditor = forwardRef<RectangleEditorRef, RectangleEditorProps>(({
           onMouseDown={(e) => handleMouseDown(e, dir)}
           style={{
             transform: `translate(${dir.includes('w') ? '-50%' : '50%'}, ${dir.includes('n') ? '-50%' : '50%'}) scale(${1/zoomScale})`,
-            // Overriding CSS transform for specific handles
+            // 为特定句柄覆盖 CSS 变换
           }}
         />
       ))}
 
-      {/* Toolbar */}
+      {/* 工具栏 */}
       <div className="rectangle-toolbar" style={uiStyle}>
-        {/* 1. Confirm */}
+        {/* 1. 确认 */}
         <button className="toolbar-btn primary" onClick={handleConfirm} title="确定绘制">
           <FaCheck />
         </button>
 
-        {/* Cancel */}
+        {/* 取消 */}
         <button className="toolbar-btn danger" onClick={onCancel} title="取消">
           <FaXmark />
         </button>

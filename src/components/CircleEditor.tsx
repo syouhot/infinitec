@@ -37,7 +37,7 @@ const CircleEditor = forwardRef<CircleEditorRef, CircleEditorProps>(({
   const [width, setWidth] = useState(initialWidth);
   const [isFilled, setIsFilled] = useState(false);
   
-  // Sync with external initialColor changes if needed (e.g. from CanvasModel)
+  // 如果需要，与外部 initialColor 更改同步（例如来自 CanvasModel）
   useEffect(() => {
     if (initialColor && initialColor !== color) {
        setColor(initialColor);
@@ -57,7 +57,7 @@ const CircleEditor = forwardRef<CircleEditorRef, CircleEditorProps>(({
   const rectStartRef = useRef<Rect | null>(null);
   const activeHandleRef = useRef<string | null>(null);
 
-  // Normalize rect to always have positive width/height
+  // 规范化矩形以始终具有正的宽度/高度
   const normalizedRect = {
     x: rect.width < 0 ? rect.x + rect.width : rect.x,
     y: rect.height < 0 ? rect.y + rect.height : rect.y,
@@ -67,12 +67,12 @@ const CircleEditor = forwardRef<CircleEditorRef, CircleEditorProps>(({
 
   const handleMouseDown = (e: React.MouseEvent, handleType: string) => {
     e.stopPropagation();
-    e.preventDefault(); // Prevent text selection
+    e.preventDefault(); // 防止文本选择
     activeHandleRef.current = handleType;
     dragStartRef.current = { x: e.clientX, y: e.clientY };
     rectStartRef.current = { ...rect };
     
-    // Close popovers
+    // 关闭弹出框
     setShowColorPicker(false);
     setShowWidthSlider(false);
 
@@ -94,7 +94,7 @@ const CircleEditor = forwardRef<CircleEditorRef, CircleEditorProps>(({
         y: startRect.y + dy
       });
     } else {
-      // Resize logic
+      // 调整大小逻辑
       let newX = startRect.x;
       let newY = startRect.y;
       let newW = startRect.width;
@@ -133,7 +133,7 @@ const CircleEditor = forwardRef<CircleEditorRef, CircleEditorProps>(({
 
   const predefinedColors = ['#FFFFFF', '#000000', '#0000FF', '#FF0000', '#00FF00', '#FFFF00', '#800080', '#FFA500'];
 
-  // Inverse scale for UI elements to maintain constant size
+  // UI 元素的逆缩放以保持恒定大小
   const uiStyle = {
     transform: `scale(${1 / zoomScale})`,
     transformOrigin: 'center bottom'
