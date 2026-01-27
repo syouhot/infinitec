@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHand
 import { CANVAS_CONFIG } from '../constants'
 import { createBoundary, clampOffset, calculateClampedOffset } from '../util/boundary'
 import { websocketService } from '../services/websocketService'
+import { useAuth } from '../contexts/AuthContext'
 import { useAppStore, useToolStore, useCanvasStore } from '../store/index' // 假设 store 存在用于 userId
 import '../styles/CanvasMain.css'
 
@@ -12,6 +13,7 @@ import ArrowEditor from './ArrowEditor'
 import PolygonEditor from './PolygonEditor'
 import TextEditor from './TextEditor'
 import ImageEditor from './ImageEditor'
+import LocationNotification from './LocationNotification'
 import type { RectangleEditorRef } from './RectangleEditor'
 import type { LineEditorRef } from './LineEditor'
 import type { CircleEditorRef } from './CircleEditor'
@@ -73,6 +75,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const currentFontSize = useCanvasStore((state) => state.currentFontSize)
   const currentImage = useCanvasStore((state) => state.currentImage)
   const setCurrentImage = useCanvasStore((state) => state.setCurrentImage)
+  const broadcastLocationTrigger = useCanvasStore((state) => state.broadcastLocationTrigger)
+  const { user } = useAuth()
+  const [locationNotification, setLocationNotification] = useState<{ senderName: string, x: number, y: number } | null>(null)
+  
   const [isDrawing, setIsDrawing] = useState(false)
   const lastPositionRef = useRef<{ x: number, y: number } | null>(null)
   const eraserCursorRef = useRef<HTMLDivElement>(null)
@@ -100,6 +106,36 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const [lineStartPoint, setLineStartPoint] = useState<Point | null>(null);
   const [arrowStartPoint, setArrowStartPoint] = useState<Point | null>(null);
   const [tempTextPosition, setTempTextPosition] = useState<Point | null>(null);
+
+  // Refs for stable access in effects
+  const canvasOffsetRef = useRef(canvasOffset)
+  const zoomScaleRef = useRef(zoomScale)
+
+  useEffect(() => {
+    canvasOffsetRef.current = canvasOffset
+  }, [canvasOffset])
+
+  useEffect(() => {
+    zoomScaleRef.current = zoomScale
+  }, [zoomScale])
+
+  // Broadcast Location Effect
+  useEffect(() => {
+    if (broadcastLocationTrigger > 0 && user) {
+      const centerX = (window.innerWidth / 2 - canvasOffsetRef.current.x) / zoomScaleRef.current
+      const centerY = (window.innerHeight / 2 - canvasOffsetRef.current.y) / zoomScaleRef.current
+      websocketService.sendLocation(user.name, centerX, centerY)
+    }
+  }, [broadcastLocationTrigger, user])
+
+  // Receive Location Effect
+  useEffect(() => {
+    websocketService.setLocationCallback((data) => {
+      if (data.userId !== user?.id) {
+        setLocationNotification({ senderName: data.userName, x: data.x, y: data.y })
+      }
+    })
+  }, [user?.id])
 
   // Polygon Drawing State
   const [drawingPolygonPoints, setDrawingPolygonPoints] = useState<Point[]>([]);
@@ -2039,6 +2075,20 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           )}
         </div>
       </div>
+
+      {locationNotification && (
+        <LocationNotification
+          senderName={locationNotification.senderName}
+          onTrack={() => {
+            const { x, y } = locationNotification
+            const newOffsetX = window.innerWidth / 2 - x * zoomScale
+            const newOffsetY = window.innerHeight / 2 - y * zoomScale
+            setCanvasOffset({ x: newOffsetX, y: newOffsetY })
+            setLocationNotification(null)
+          }}
+          onClose={() => setLocationNotification(null)}
+        />
+      )}
     </div>
   )
 }

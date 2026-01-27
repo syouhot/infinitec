@@ -104,7 +104,7 @@ const RoomModal: React.FC<RoomModalProps> = ({ isOpen, onClose, onCreateRoom, on
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value.trim())}
-                  placeholder="请输入房间密码（可选）"
+                  placeholder="请输入房间密码"
                   maxLength={20}
                 />
               </div>

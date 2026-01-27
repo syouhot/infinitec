@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { message } from 'antd'
 import { LuSlack, LuCopy } from "react-icons/lu";
 import { IoWarningOutline } from "react-icons/io5";
+import { FaLocationArrow } from "react-icons/fa6";
 import '../styles/CanvasMenu.css'
 import '../styles/ConfirmModal.css'
 import ThemeControls from './ThemeControls';
-import { useAppStore } from '../store'
+import { useAppStore, useCanvasStore } from '../store'
 import { leaveRoom, deleteRoom } from '../services/roomService'
 import { websocketService } from '../services/websocketService'
 import RoomDeletedModal from './RoomDeletedModal'
@@ -138,6 +139,36 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
                     <LuCopy size={14} />
                   </button>
                 </div>
+                <button
+                  onClick={() => useCanvasStore.getState().triggerLocationBroadcast()}
+                  style={{
+                    marginTop: '10px',
+                    width: '100%',
+                    padding: '8px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '6px',
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
+                  }}
+                  title="发送当前位置给所有人"
+                >
+                   <FaLocationArrow size={12} /> 发送坐标
+                </button>
               </div>
             )}
             <ThemeControls style={{ minWidth: '240px' }} />

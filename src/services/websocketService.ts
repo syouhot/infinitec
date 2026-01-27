@@ -10,6 +10,7 @@ interface WebSocketMessage {
 
 type RoomDeletedCallback = (roomId: string) => void
 type DrawEventCallback = (data: any) => void
+type LocationCallback = (data: { userId: string, userName: string, x: number, y: number }) => void
 
 class WebSocketService {
   private ws: WebSocket | null = null
@@ -21,6 +22,7 @@ class WebSocketService {
   private heartbeatInterval: NodeJS.Timeout | null = null
   private onRoomDeletedCallback: RoomDeletedCallback | null = null
   private onDrawEventCallback: DrawEventCallback | null = null
+  private onLocationCallback: LocationCallback | null = null
 
   setRoomDeletedCallback(callback: RoomDeletedCallback): void {
     this.onRoomDeletedCallback = callback
@@ -30,6 +32,10 @@ class WebSocketService {
     this.onDrawEventCallback = callback
   }
 
+  setLocationCallback(callback: LocationCallback): void {
+    this.onLocationCallback = callback
+  }
+
   sendDrawEvent(data: any): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.userId) {
       const message: WebSocketMessage = {
@@ -37,6 +43,24 @@ class WebSocketService {
         roomId: this.roomId,
         userId: this.userId,
         data
+      }
+      this.ws.send(JSON.stringify(message))
+    }
+  }
+
+  sendLocation(userName: string, x: number, y: number): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.userId) {
+      // Use draw_event type to ensure server forwards it, but wrap as location data
+      const message: WebSocketMessage = {
+        type: 'draw_event',
+        roomId: this.roomId,
+        userId: this.userId,
+        data: { 
+          dataType: 'location',
+          userName, 
+          x, 
+          y 
+        }
       }
       this.ws.send(JSON.stringify(message))
     }
@@ -77,8 +101,33 @@ class WebSocketService {
             if (message.type === 'joined') {
               console.log(`成功加入房间 ${message.roomId}`)
             } else if (message.type === 'draw_event') {
-              if (this.onDrawEventCallback) {
-                this.onDrawEventCallback(message.data)
+              // Check if this is a location message masquerading as a draw event
+              if (message.data && message.data.dataType === 'location') {
+                if (this.onLocationCallback) {
+                  this.onLocationCallback({
+                    userId: message.userId || '',
+                    userName: message.data.userName,
+                    x: message.data.x,
+                    y: message.data.y
+                  })
+                }
+              } else {
+                // Standard draw event
+                if (this.onDrawEventCallback) {
+                  this.onDrawEventCallback(message.data)
+                }
+              }
+            } else if (message.type === 'location_share') {
+              if (this.onLocationCallback) {
+                // Combine message.userId with data if needed, or just pass data
+                // The data object from sendLocation already has userName, x, y.
+                // We should ensure userId is passed if needed. 
+                // sendLocation puts { userName, x, y } in data.
+                // We'll add userId from the message root to be safe.
+                this.onLocationCallback({
+                  userId: message.userId || '',
+                  ...message.data
+                })
               }
             } else if (message.type === 'heartbeat') {
               this.handleHeartbeat(message)
