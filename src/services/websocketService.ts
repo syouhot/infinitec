@@ -11,6 +11,7 @@ interface WebSocketMessage {
 type RoomDeletedCallback = (roomId: string) => void
 type DrawEventCallback = (data: any) => void
 type LocationCallback = (data: { userId: string, userName: string, x: number, y: number }) => void
+type SnapshotCallback = (data: string) => void
 
 class WebSocketService {
   private ws: WebSocket | null = null
@@ -23,6 +24,7 @@ class WebSocketService {
   private onRoomDeletedCallback: RoomDeletedCallback | null = null
   private onDrawEventCallback: DrawEventCallback | null = null
   private onLocationCallback: LocationCallback | null = null
+  private onSnapshotCallback: SnapshotCallback | null = null
 
   setRoomDeletedCallback(callback: RoomDeletedCallback): void {
     this.onRoomDeletedCallback = callback
@@ -34,6 +36,10 @@ class WebSocketService {
 
   setLocationCallback(callback: LocationCallback): void {
     this.onLocationCallback = callback
+  }
+
+  setSnapshotCallback(callback: SnapshotCallback): void {
+    this.onSnapshotCallback = callback
   }
 
   sendDrawEvent(data: any): void {
@@ -61,6 +67,18 @@ class WebSocketService {
           x, 
           y 
         }
+      }
+      this.ws.send(JSON.stringify(message))
+    }
+  }
+
+  sendSnapshot(data: string): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.userId) {
+      const message: WebSocketMessage = {
+        type: 'save_snapshot',
+        roomId: this.roomId,
+        userId: this.userId,
+        data
       }
       this.ws.send(JSON.stringify(message))
     }
@@ -142,6 +160,10 @@ class WebSocketService {
               
               if (this.onRoomDeletedCallback && message.roomId) {
                 this.onRoomDeletedCallback(message.roomId)
+              }
+            } else if (message.type === 'snapshot_data') {
+              if (this.onSnapshotCallback && message.data) {
+                this.onSnapshotCallback(message.data)
               }
             }
           } catch (error) {

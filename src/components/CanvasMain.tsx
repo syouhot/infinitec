@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
-import { CANVAS_CONFIG } from '../constants'
+import { CANVAS_CONFIG, AUTO_SAVE_INTERVAL_MINUTES } from '../constants'
 import { createBoundary, clampOffset, calculateClampedOffset } from '../util/boundary'
 import { websocketService } from '../services/websocketService'
 import { useAuth } from '../contexts/AuthContext'
@@ -236,6 +236,44 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
   // 多画布架构状态
   const [activeUserIds, setActiveUserIds] = useState<Set<string>>(new Set(['local']));
+  const [snapshotLoaded, setSnapshotLoaded] = useState(0);
+  const isRoomOwner = useAppStore(state => state.isRoomOwner);
+
+  // Auto-save Logic
+  useEffect(() => {
+    if (!isRoomOwner) return
+
+    const interval = setInterval(() => {
+      const data = JSON.stringify(strokesRef.current)
+      websocketService.sendSnapshot(data)
+    }, AUTO_SAVE_INTERVAL_MINUTES * 10 * 1000)
+
+    return () => clearInterval(interval)
+  }, [isRoomOwner])
+
+  // Snapshot Load Logic
+  useEffect(() => {
+    websocketService.setSnapshotCallback((data) => {
+      try {
+         const strokes = JSON.parse(data)
+         strokesRef.current = strokes
+         
+         const uids = new Set(strokes.map((s: any) => s.userId))
+         uids.add('local')
+         
+         setActiveUserIds(prev => {
+            const next = new Set(prev)
+            uids.forEach((id: string) => next.add(id))
+            return next
+         })
+         
+         setSnapshotLoaded(Date.now())
+      } catch (e) {
+         console.error("Failed to load snapshot", e)
+      }
+    })
+  }, [])
+
   const layerRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
   // 辅助函数确保跟踪用户ID
@@ -510,6 +548,13 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const renderCanvas = useCallback(() => {
     redrawAllLayers();
   }, [redrawAllLayers]);
+
+  // Trigger redraw after snapshot load
+  useEffect(() => {
+    if (snapshotLoaded > 0) {
+      renderCanvas()
+    }
+  }, [snapshotLoaded, renderCanvas])
 
   const handleConfirmPolygon = useCallback((points: Point[], style: { color: string; width: number; isFilled: boolean }) => {
     if (points.length < 3) {
