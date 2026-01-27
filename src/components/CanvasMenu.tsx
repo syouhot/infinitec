@@ -6,6 +6,9 @@ import { FaLocationArrow } from "react-icons/fa6";
 import '../styles/CanvasMenu.css'
 import '../styles/ConfirmModal.css'
 import ThemeControls from './ThemeControls';
+import { LayerManager } from './LayerManager';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useAppStore, useCanvasStore } from '../store'
 import { leaveRoom, deleteRoom } from '../services/roomService'
 import { websocketService } from '../services/websocketService'
@@ -104,7 +107,7 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
   return (
     <>
       {showBackButton && (
-        <div 
+        <div
           className="menu-container"
           onMouseEnter={() => setIsMenuOpen(true)}
           onMouseLeave={() => setIsMenuOpen(false)}
@@ -113,72 +116,42 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
             <LuSlack size={30} />
           </div>
           <div className={`menu-dropdown ${isMenuOpen ? 'open' : ''}`}>
+            <ThemeControls 
+              style={{ minWidth: '240px' }} 
+              onThemeChange={(theme) => useCanvasStore.getState().setTheme(theme)}
+            />
             {roomId && (
               <div className="room-info">
                 <span className="room-label">房间ID</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="room-id">{roomId}</span>
-                  <button 
+                  <button
                     onClick={handleCopyRoomId}
                     className="copy-button"
                     title="复制房间ID"
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'rgba(255, 255, 255, 0.6)',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'color 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'}
                   >
                     <LuCopy size={14} />
                   </button>
                 </div>
                 <button
                   onClick={() => useCanvasStore.getState().triggerLocationBroadcast()}
-                  style={{
-                    marginTop: '10px',
-                    width: '100%',
-                    padding: '8px',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '6px',
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
-                  }}
+                  className="location-button"
                   title="发送当前位置给所有人"
                 >
-                   <FaLocationArrow size={12} /> 发送坐标
+                  <FaLocationArrow size={12} /> 发送坐标
                 </button>
+                <DndProvider backend={HTML5Backend}>
+                  <LayerManager isOwner={isRoomOwner} />
+                </DndProvider>
               </div>
             )}
-            <ThemeControls style={{ minWidth: '240px' }} />
             <button className="back-button" onClick={handleExitRoom}>
               ← 退出
             </button>
           </div>
         </div>
       )}
-      
+
       {showConfirmModal && (
         <div className={`confirm-modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleCancelDelete}>
           <div className={`confirm-modal ${isClosing ? 'closing' : ''}`} onClick={(e) => e.stopPropagation()}>
@@ -198,9 +171,9 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
           </div>
         </div>
       )}
-      
-      <RoomDeletedModal 
-        isOpen={showRoomDeletedModal} 
+
+      <RoomDeletedModal
+        isOpen={showRoomDeletedModal}
         onConfirm={handleRoomDeletedConfirm}
       />
     </>

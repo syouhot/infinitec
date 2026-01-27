@@ -10,7 +10,12 @@ interface CanvasState {
   eraserSize: number
   currentImage: HTMLImageElement | null
   broadcastLocationTrigger: number
+  layerOrder: string[]
+  activeUserIds: string[]
+  onlineUsers: { userId: string, userName: string }[]
+  theme: 'default' | 'dark' | 'light'
   setColor: (data: number|string) => void
+  setTheme: (theme: 'default' | 'dark' | 'light') => void
   setLineWidth: (width: number) => void
   setLineDash: (dash: number[]) => void
   setArrowType: (type: 'standard' | 'double' | 'solid' | 'solid-double') => void
@@ -18,6 +23,9 @@ interface CanvasState {
   setEraserSize: (size: number) => void
   setCurrentImage: (image: HTMLImageElement | null) => void
   triggerLocationBroadcast: () => void
+  setLayerOrder: (order: string[]) => void
+  setActiveUserIds: (ids: string[]) => void
+  setOnlineUsers: (users: { userId: string, userName: string }[]) => void
 }
 
 export const useCanvasStore = create<CanvasState>((set) => ({
@@ -29,12 +37,20 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   eraserSize: 50,
   currentImage: null,
   broadcastLocationTrigger: 0,
+  layerOrder: [],
+  activeUserIds: ['local'],
+  onlineUsers: [],
+  theme: 'default',
   setColor: (data: number|string) => set({ currentColor: typeof data === 'number' ? colors[data] : data }),
+  setTheme: (theme) => set({ theme }),
   setLineWidth: (width) => set({ currentLineWidth: width }),
   setLineDash: (dash) => set({ currentLineDash: dash }),
   setArrowType: (type) => set({ currentArrowType: type }),
   setFontSize: (size) => set({ currentFontSize: size }),
   setEraserSize: (size) => set({ eraserSize: size }),
   setCurrentImage: (image) => set({ currentImage: image }),
-  triggerLocationBroadcast: () => set({ broadcastLocationTrigger: Date.now() })
+  triggerLocationBroadcast: () => set({ broadcastLocationTrigger: Date.now() }),
+  setLayerOrder: (order) => set({ layerOrder: order }),
+  setActiveUserIds: (ids) => set({ activeUserIds: ids }),
+  setOnlineUsers: (users) => set({ onlineUsers: users })
 }))

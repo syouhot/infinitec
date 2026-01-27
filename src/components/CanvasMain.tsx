@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle,useMemo } from 'react'
 import { CANVAS_CONFIG, AUTO_SAVE_INTERVAL_MINUTES } from '../constants'
 import { createBoundary, clampOffset, calculateClampedOffset } from '../util/boundary'
 import { websocketService } from '../services/websocketService'
@@ -76,6 +76,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const currentImage = useCanvasStore((state) => state.currentImage)
   const setCurrentImage = useCanvasStore((state) => state.setCurrentImage)
   const broadcastLocationTrigger = useCanvasStore((state) => state.broadcastLocationTrigger)
+  const theme = useCanvasStore((state) => state.theme)
   const { user } = useAuth()
   const [locationNotification, setLocationNotification] = useState<{ senderName: string, x: number, y: number } | null>(null)
   
@@ -235,9 +236,17 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   }, [selectedTool, isEditingRectangle, isEditingCircle, isEditingLine, isEditingArrow, isEditingPolygon, isEditingText, isEditingImage]);
 
   // 多画布架构状态
-  const [activeUserIds, setActiveUserIds] = useState<Set<string>>(new Set(['local']));
+  // const [activeUserIds, setActiveUserIds] = useState<Set<string>>(new Set(['local'])); // Moved to Store
   const [snapshotLoaded, setSnapshotLoaded] = useState(0);
   const isRoomOwner = useAppStore(state => state.isRoomOwner);
+  
+  const activeUserIdsList = useCanvasStore(state => state.activeUserIds);
+  const setActiveUserIdsList = useCanvasStore(state => state.setActiveUserIds);
+  const layerOrder = useCanvasStore(state => state.layerOrder);
+  const setLayerOrder = useCanvasStore(state => state.setLayerOrder);
+  const setOnlineUsers = useCanvasStore(state => state.setOnlineUsers);
+
+  const activeUserIds = useMemo(() => new Set(activeUserIdsList), [activeUserIdsList]);
 
   // Auto-save Logic
   useEffect(() => {
@@ -245,51 +254,160 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     const interval = setInterval(() => {
       const data = JSON.stringify(strokesRef.current)
-      websocketService.sendSnapshot(data)
-    }, AUTO_SAVE_INTERVAL_MINUTES * 10 * 1000)
+      websocketService.sendSnapshot(data, layerOrder)
+    }, AUTO_SAVE_INTERVAL_MINUTES * 60 * 1000)
 
     return () => clearInterval(interval)
-  }, [isRoomOwner])
+  }, [isRoomOwner, layerOrder])
 
   // Snapshot Load Logic
   useEffect(() => {
-    websocketService.setSnapshotCallback((data) => {
+    websocketService.setSnapshotCallback((data, remoteLayerOrder) => {
       try {
          const strokes = JSON.parse(data)
          strokesRef.current = strokes
          
-         const uids = new Set(strokes.map((s: any) => s.userId))
+         const myId = websocketService.getUserId()
+         const uids = new Set<string>()
+         strokes.forEach((s: any) => {
+             if (s.userId !== myId) {
+                 uids.add(s.userId)
+             }
+         })
          uids.add('local')
          
-         setActiveUserIds(prev => {
-            const next = new Set(prev)
-            uids.forEach((id: string) => next.add(id))
-            return next
-         })
+         // Update active users
+         setActiveUserIdsList(Array.from(uids));
+         
+         // Update layer order if provided, otherwise default to active users list
+         if (remoteLayerOrder && remoteLayerOrder.length > 0) {
+            // Filter out myId from remote order and ensure local is present if needed
+            // Or replace myId with local
+            const processedOrder = remoteLayerOrder.map(id => id === myId ? 'local' : id)
+                                                  .filter((id, index, self) => self.indexOf(id) === index); // Unique
+            
+            if (!processedOrder.includes('local')) {
+                processedOrder.push('local')
+            }
+            setLayerOrder(processedOrder)
+         } else {
+            // Default: local on top or append new ones?
+            // Initialize layer order if empty
+            setLayerOrder(Array.from(uids))
+         }
          
          setSnapshotLoaded(Date.now())
       } catch (e) {
          console.error("Failed to load snapshot", e)
       }
     })
-  }, [])
+    
+    websocketService.setLayerOrderCallback((order) => {
+       const myId = websocketService.getUserId()
+       const processedOrder = order.map(id => id === myId ? 'local' : id)
+                                   .filter((id, index, self) => self.indexOf(id) === index);
+       if (!processedOrder.includes('local')) {
+           processedOrder.push('local') // Ensure local is always present
+       }
+       setLayerOrder(processedOrder)
+    })
+
+    websocketService.setRoomUsersCallback((users) => {
+       setOnlineUsers(users)
+       
+       const myId = websocketService.getUserId()
+       
+       // 1. Update activeUserIds: Add any new online users
+       // This ensures we have canvases for them
+       const currentActiveIds = useCanvasStore.getState().activeUserIds
+       const newActiveIds = [...currentActiveIds]
+       let activeIdsChanged = false
+       
+       users.forEach(u => {
+           if (u.userId !== myId && !newActiveIds.includes(u.userId)) {
+               newActiveIds.push(u.userId)
+               activeIdsChanged = true
+           }
+       })
+       
+       if (activeIdsChanged) {
+           setActiveUserIdsList(newActiveIds)
+       }
+       
+       // 2. Update layerOrder: Add any new online users
+       // We keep existing layers (even if offline) to preserve history/snapshots
+       // unless explicitly removed by user
+       const currentLayerOrder = useCanvasStore.getState().layerOrder
+       const newLayerOrder = [...currentLayerOrder]
+       let orderChanged = false
+
+       // Ensure local is present
+       if (!newLayerOrder.includes('local')) {
+           newLayerOrder.push('local')
+           orderChanged = true
+       }
+
+       users.forEach(u => {
+          if (u.userId !== myId && !newLayerOrder.includes(u.userId)) {
+             newLayerOrder.push(u.userId)
+             orderChanged = true
+          }
+       })
+       
+       if (orderChanged) {
+          setLayerOrder(newLayerOrder)
+       }
+    })
+  }, [setActiveUserIdsList, setLayerOrder, setOnlineUsers])
 
   const layerRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
   // 辅助函数确保跟踪用户ID
   const ensureUserLayer = useCallback((uid: string) => {
-    setActiveUserIds(prev => {
-      if (prev.has(uid)) return prev;
-      return new Set(prev).add(uid);
-    });
-  }, []);
+    const myId = websocketService.getUserId();
+    // 如果是当前用户，不需要创建新层，使用 local 层
+    if (uid === myId) return;
+
+    // Check against store list
+    if (!useCanvasStore.getState().activeUserIds.includes(uid)) {
+        const newIds = [...useCanvasStore.getState().activeUserIds, uid]
+        setActiveUserIdsList(newIds);
+        
+        // Also add to layer order if not present
+        if (!useCanvasStore.getState().layerOrder.includes(uid)) {
+           setLayerOrder([...useCanvasStore.getState().layerOrder, uid])
+        }
+    }
+  }, [setActiveUserIdsList, setLayerOrder]);
+
+  const getAdaptiveColor = useCallback((color: string) => {
+    // Normalize color
+    const c = color.toLowerCase();
+    const isWhite = c === '#ffffff' || c === '#fff' || c === 'white' || c === 'rgb(255, 255, 255)' || c === 'rgba(255, 255, 255, 1)' || c === 'rgba(255, 255, 255, 1.0)';
+    const isBlack = c === '#000000' || c === '#000' || c === 'black' || c === 'rgb(0, 0, 0)' || c === 'rgba(0, 0, 0, 1)' || c === 'rgba(0, 0, 0, 1.0)';
+
+    if (theme === 'light') {
+      // Light theme (White background): White lines -> Black
+      if (isWhite) return '#000000';
+    } else {
+      // Dark/Default theme (Black background): Black lines -> White
+      if (isBlack) return '#ffffff';
+    }
+    return color;
+  }, [theme]);
 
   // 辅助函数绘制单个线段（增量更新）
   const drawSegment = useCallback((uid: string, p1: Point, p2: Point, color: string, width: number, tool: string) => {
-    const canvas = layerRefs.current.get(uid);
+    const myId = websocketService.getUserId();
+    // Map myId to local
+    const targetId = (uid === myId) ? 'local' : uid;
+    
+    const canvas = layerRefs.current.get(targetId);
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    const adaptiveColor = getAdaptiveColor(color);
 
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y);
@@ -302,13 +420,13 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       ctx.lineWidth = width;
       ctx.globalCompositeOperation = 'destination-out';
     } else {
-      ctx.strokeStyle = color;
+      ctx.strokeStyle = adaptiveColor;
       ctx.lineWidth = width;
       ctx.globalCompositeOperation = 'source-over';
     }
 
     ctx.stroke();
-  }, []);
+  }, [getAdaptiveColor]);
   const redrawLayer = useCallback((uid: string) => {
     const canvas = layerRefs.current.get(uid);
     if (!canvas) return;
@@ -341,10 +459,25 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     ctx.setTransform(dpr, 0, 0, dpr, paddingX * dpr, paddingY * dpr);
 
+    const myId = websocketService.getUserId();
+
     strokesRef.current.forEach(stroke => {
-      if (stroke.userId !== uid) return;
+      // Allow drawing if stroke.userId matches uid
+      // OR if uid is 'local' and stroke.userId is myId
+      let shouldDraw = stroke.userId === uid;
+      if (uid === 'local' && stroke.userId === myId) {
+          shouldDraw = true;
+      }
+      // Also handle case where we are asked to redraw 'local' but stroke is 'local' (legacy/offline)
+      if (uid === 'local' && stroke.userId === 'local') {
+          shouldDraw = true;
+      }
+      
+      if (!shouldDraw) return;
       if (stroke.isErased) return;
       if (stroke.points.length < 1) return;
+
+      const adaptiveColor = getAdaptiveColor(stroke.color);
 
       ctx.beginPath();
       ctx.lineCap = 'round';
@@ -373,10 +506,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         const h = Math.abs(p1.y - p2.y);
 
         if (stroke.isFilled) {
-          ctx.fillStyle = stroke.color;
+          ctx.fillStyle = adaptiveColor;
           ctx.fillRect(x, y, w, h);
         } else {
-          ctx.strokeStyle = stroke.color;
+          ctx.strokeStyle = adaptiveColor;
           ctx.lineWidth = stroke.width;
           ctx.strokeRect(x, y, w, h);
         }
@@ -396,16 +529,16 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 2 * Math.PI);
 
         if (stroke.isFilled) {
-          ctx.fillStyle = stroke.color;
+          ctx.fillStyle = adaptiveColor;
           ctx.fill();
         } else {
-          ctx.strokeStyle = stroke.color;
+          ctx.strokeStyle = adaptiveColor;
           ctx.lineWidth = stroke.width;
           ctx.stroke();
         }
       } else if (stroke.tool === 'line') {
         if (stroke.points.length < 2) return;
-        ctx.strokeStyle = stroke.color;
+        ctx.strokeStyle = adaptiveColor;
         ctx.lineWidth = stroke.width;
         ctx.globalCompositeOperation = 'source-over';
         ctx.setLineDash(stroke.lineDash || []);
@@ -425,10 +558,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         ctx.closePath();
 
         if (stroke.isFilled) {
-          ctx.fillStyle = stroke.color;
+          ctx.fillStyle = adaptiveColor;
           ctx.fill();
         } else {
-          ctx.strokeStyle = stroke.color;
+          ctx.strokeStyle = adaptiveColor;
           ctx.lineWidth = stroke.width;
           ctx.globalCompositeOperation = 'source-over';
           ctx.stroke();
@@ -465,7 +598,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         // Use container width for text wrapping, minus border padding
         const width = containerWidth - (borderOffset * 2);
 
-        ctx.fillStyle = stroke.color;
+        ctx.fillStyle = adaptiveColor;
         // Use standard CSS font syntax: font-style font-weight font-size font-family
         // Example: "italic bold 20px Arial"
         const fontStyle = stroke.isItalic ? 'italic' : 'normal';
@@ -528,7 +661,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           }
         }
       } else {
-        ctx.strokeStyle = stroke.color;
+        ctx.strokeStyle = adaptiveColor;
         ctx.lineWidth = stroke.width;
         ctx.globalCompositeOperation = 'source-over';
 
@@ -555,6 +688,11 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       renderCanvas()
     }
   }, [snapshotLoaded, renderCanvas])
+
+  // Trigger redraw on theme change
+  useEffect(() => {
+    renderCanvas()
+  }, [theme, renderCanvas])
 
   const handleConfirmPolygon = useCallback((points: Point[], style: { color: string; width: number; isFilled: boolean }) => {
     if (points.length < 3) {
@@ -597,11 +735,15 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   }, [renderCanvas]);
 
   const drawStroke = useCallback((stroke: Stroke) => {
-    const canvas = layerRefs.current.get(stroke.userId);
+    const myId = websocketService.getUserId();
+    const targetId = (stroke.userId === myId) ? 'local' : stroke.userId;
+    const canvas = layerRefs.current.get(targetId);
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     if (stroke.points.length < 1) return;
+
+    const adaptiveColor = getAdaptiveColor(stroke.color);
 
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -632,10 +774,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       const h = Math.abs(p1.y - p2.y);
 
       if (stroke.isFilled) {
-        ctx.fillStyle = stroke.color;
+        ctx.fillStyle = adaptiveColor;
         ctx.fillRect(x, y, w, h);
       } else {
-        ctx.strokeStyle = stroke.color;
+        ctx.strokeStyle = adaptiveColor;
         ctx.lineWidth = stroke.width;
         ctx.strokeRect(x, y, w, h);
       }
@@ -653,16 +795,16 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 2 * Math.PI);
 
       if (stroke.isFilled) {
-        ctx.fillStyle = stroke.color;
+        ctx.fillStyle = adaptiveColor;
         ctx.fill();
       } else {
-        ctx.strokeStyle = stroke.color;
+        ctx.strokeStyle = adaptiveColor;
         ctx.lineWidth = stroke.width;
         ctx.stroke();
       }
     } else if (stroke.tool === 'line') {
       if (stroke.points.length < 2) return;
-      ctx.strokeStyle = stroke.color;
+      ctx.strokeStyle = adaptiveColor;
       ctx.lineWidth = stroke.width;
       ctx.globalCompositeOperation = 'source-over';
       ctx.setLineDash(stroke.lineDash || []);
@@ -676,7 +818,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       const p1 = stroke.points[0];
       const p2 = stroke.points[1];
       const width = stroke.width;
-      const color = stroke.color;
+      const color = adaptiveColor;
       const arrowType = stroke.arrowType || 'standard';
 
       ctx.strokeStyle = color;
@@ -750,10 +892,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       ctx.closePath();
 
       if (stroke.isFilled) {
-        ctx.fillStyle = stroke.color;
+        ctx.fillStyle = adaptiveColor;
         ctx.fill();
       } else {
-        ctx.strokeStyle = stroke.color;
+        ctx.strokeStyle = adaptiveColor;
         ctx.lineWidth = stroke.width;
         ctx.globalCompositeOperation = 'source-over';
         ctx.stroke();
@@ -786,7 +928,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       // Use container width for text wrapping, minus border padding
       const width = containerWidth - (borderOffset * 2);
 
-      ctx.fillStyle = stroke.color;
+      ctx.fillStyle = adaptiveColor;
       // Use standard CSS font syntax: font-style font-weight font-size font-family
       // Example: "italic bold 20px Arial"
       const fontStyle = stroke.isItalic ? 'italic' : 'normal';
@@ -826,7 +968,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           stroke.isStrikethrough,
           fontSize
         );
-      });
+      })
     } else if (stroke.tool === 'image') {
       if (!stroke.imageSrc || stroke.points.length < 1) return;
 
@@ -849,7 +991,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         }
       }
     } else {
-      ctx.strokeStyle = stroke.color;
+      ctx.strokeStyle = adaptiveColor;
       ctx.lineWidth = stroke.width;
       ctx.globalCompositeOperation = 'source-over';
 
@@ -860,7 +1002,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       }
       ctx.stroke();
     }
-  }, [redrawLayer]);
+  }, [redrawLayer, getAdaptiveColor]);
   const handleConfirmText = useCallback((rect: { x: number, y: number, width: number, height: number }, text: string, style: TextStyle) => {
     const uid = websocketService.getUserId() || 'local';
     ensureUserLayer(uid);
@@ -1825,7 +1967,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
             height: `${canvasSize.height}px`,
             transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px)) scale(${zoomScale})`,
             pointerEvents: 'none',
-            zIndex: uid === (websocketService.getUserId() || 'local') ? 10 : 1
+            zIndex: layerOrder.indexOf(uid) !== -1 ? layerOrder.indexOf(uid) + 10 : 5
           }}
         />
       ))}

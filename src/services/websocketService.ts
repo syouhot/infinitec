@@ -5,17 +5,21 @@ interface WebSocketMessage {
   timestamp?: number
   roomId?: string
   userId?: string
+  userName?: string
   data?: any
 }
 
 type RoomDeletedCallback = (roomId: string) => void
 type DrawEventCallback = (data: any) => void
 type LocationCallback = (data: { userId: string, userName: string, x: number, y: number }) => void
-type SnapshotCallback = (data: string) => void
+type SnapshotCallback = (data: string, layerOrder?: string[]) => void
+type LayerOrderCallback = (layerOrder: string[]) => void
+type RoomUsersCallback = (users: { userId: string, userName: string }[]) => void
 
 class WebSocketService {
   private ws: WebSocket | null = null
   private userId: string | null = null
+  private userName: string | null = null
   private roomId: string | null = null
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
@@ -25,6 +29,8 @@ class WebSocketService {
   private onDrawEventCallback: DrawEventCallback | null = null
   private onLocationCallback: LocationCallback | null = null
   private onSnapshotCallback: SnapshotCallback | null = null
+  private onLayerOrderCallback: LayerOrderCallback | null = null
+  private onRoomUsersCallback: RoomUsersCallback | null = null
 
   setRoomDeletedCallback(callback: RoomDeletedCallback): void {
     this.onRoomDeletedCallback = callback
@@ -40,6 +46,14 @@ class WebSocketService {
 
   setSnapshotCallback(callback: SnapshotCallback): void {
     this.onSnapshotCallback = callback
+  }
+
+  setLayerOrderCallback(callback: LayerOrderCallback): void {
+    this.onLayerOrderCallback = callback
+  }
+
+  setRoomUsersCallback(callback: RoomUsersCallback): void {
+    this.onRoomUsersCallback = callback
   }
 
   sendDrawEvent(data: any): void {
@@ -72,22 +86,40 @@ class WebSocketService {
     }
   }
 
-  sendSnapshot(data: string): void {
+  sendSnapshot(data: string, layerOrder?: string[]): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.userId) {
       const message: WebSocketMessage = {
         type: 'save_snapshot',
         roomId: this.roomId,
         userId: this.userId,
-        data
+        data: {
+          data,
+          layerOrder
+        }
       }
       this.ws.send(JSON.stringify(message))
     }
   }
 
-  connect(userId: string, roomId: string): Promise<void> {
+  sendLayerOrder(layerOrder: string[]): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.userId) {
+      const message: WebSocketMessage = {
+        type: 'layer_order_update',
+        roomId: this.roomId,
+        userId: this.userId,
+        data: {
+          layerOrder
+        }
+      }
+      this.ws.send(JSON.stringify(message))
+    }
+  }
+
+  connect(userId: string, roomId: string, userName?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       this.userId = userId
       this.roomId = roomId
+      this.userName = userName || null
 
       const wsUrl = `ws://localhost:3001`
       
@@ -101,7 +133,8 @@ class WebSocketService {
           const joinMessage: WebSocketMessage = {
             type: 'join',
             userId,
-            roomId
+            roomId,
+            userName
           }
           
           this.ws?.send(JSON.stringify(joinMessage))
@@ -163,7 +196,15 @@ class WebSocketService {
               }
             } else if (message.type === 'snapshot_data') {
               if (this.onSnapshotCallback && message.data) {
-                this.onSnapshotCallback(message.data)
+                this.onSnapshotCallback(message.data, message.layerOrder)
+              }
+            } else if (message.type === 'layer_order_update') {
+               if (this.onLayerOrderCallback && message.data && message.data.layerOrder) {
+                 this.onLayerOrderCallback(message.data.layerOrder)
+               }
+            } else if (message.type === 'room_users_update') {
+              if (this.onRoomUsersCallback && message.data && message.data.users) {
+                this.onRoomUsersCallback(message.data.users)
               }
             }
           } catch (error) {
@@ -186,7 +227,7 @@ class WebSocketService {
             
             setTimeout(() => {
               if (this.userId && this.roomId) {
-                this.connect(this.userId, this.roomId)
+                this.connect(this.userId, this.roomId, this.userName || undefined)
               }
             }, this.reconnectDelay)
           } else {

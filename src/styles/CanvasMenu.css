@@ -1,3 +1,53 @@
+:root {
+  /* Default Dark Theme */
+  --menu-bg: rgba(30, 30, 40, 0.95);
+  --menu-border: rgba(255, 255, 255, 0.2);
+  --menu-text: rgba(255, 255, 255, 0.8);
+  --menu-text-secondary: rgba(255, 255, 255, 0.5);
+  --menu-text-hover: rgba(255, 255, 255, 1);
+  --menu-hover-bg: rgba(255, 255, 255, 0.1);
+  --menu-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --menu-scroll-thumb: rgba(255, 255, 255, 0.2);
+  --menu-accent: rgba(100, 200, 255, 0.95);
+  
+  --menu-item-bg: rgba(255, 255, 255, 0.05);
+  --menu-item-border: rgba(255, 255, 255, 0.1);
+  --menu-item-hover-bg: rgba(255, 255, 255, 0.1);
+  --menu-item-hover-border: rgba(255, 255, 255, 0.2);
+  
+  --menu-button-bg: transparent;
+  --menu-button-hover-bg: rgba(255, 255, 255, 0.1);
+
+  --menu-active-bg: rgba(100, 200, 255, 0.3);
+  --menu-active-border: rgba(100, 200, 255, 0.5);
+  --menu-active-shadow: 0 0 0 2px rgba(100, 200, 255, 0.5), 0 0 12px rgba(100, 200, 255, 0.3);
+}
+
+body.canvas-bg-light {
+  /* Light Theme Overrides */
+  --menu-bg: rgba(255, 255, 255, 0.95);
+  --menu-border: rgba(0, 0, 0, 0.1);
+  --menu-text: rgba(0, 0, 0, 0.8);
+  --menu-text-secondary: rgba(0, 0, 0, 0.5);
+  --menu-text-hover: rgba(0, 0, 0, 1);
+  --menu-hover-bg: rgba(0, 0, 0, 0.05);
+  --menu-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --menu-scroll-thumb: rgba(0, 0, 0, 0.2);
+  --menu-accent: rgba(0, 100, 200, 0.95);
+  
+  --menu-item-bg: rgba(0, 0, 0, 0.03);
+  --menu-item-border: rgba(0, 0, 0, 0.1);
+  --menu-item-hover-bg: rgba(0, 0, 0, 0.06);
+  --menu-item-hover-border: rgba(0, 0, 0, 0.15);
+  
+  --menu-button-bg: transparent;
+  --menu-button-hover-bg: rgba(0, 0, 0, 0.05);
+
+  --menu-active-bg: rgba(0, 100, 200, 0.2);
+  --menu-active-border: rgba(0, 100, 200, 0.4);
+  --menu-active-shadow: 0 0 0 2px rgba(0, 100, 200, 0.3), 0 0 8px rgba(0, 100, 200, 0.2);
+}
+
 .menu-container {
   position: absolute;
   top: 20px;
@@ -8,9 +58,9 @@
 .menu-icon {
   width: 50px;
   height: 50px;
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--menu-text);
+  background: var(--menu-item-bg);
+  border: 1px solid var(--menu-border);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -39,9 +89,9 @@
 }
 
 .menu-icon:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 1);
+  background: var(--menu-hover-bg);
+  border-color: var(--menu-text-secondary);
+  color: var(--menu-text-hover);
 }
 
 .menu-dropdown {
@@ -49,8 +99,8 @@
   top: 60px;
   left: 0;
   min-width: 120px;
-  background: rgba(30, 30, 40, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-border);
   border-radius: 8px;
   padding: 0;
   opacity: 0;
@@ -58,7 +108,7 @@
   transform: translateY(-10px);
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--menu-shadow);
 }
 
 .menu-dropdown.open {
@@ -72,29 +122,67 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--menu-border);
 }
 
 .room-label {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--menu-text-secondary);
   font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.05em;
 }
 
 .room-id {
-  color: rgba(100, 200, 255, 0.95);
+  color: var(--menu-accent);
   font-size: 1.1rem;
   font-weight: 600;
   letter-spacing: 0.1em;
   font-family: 'Courier New', monospace;
 }
 
+.copy-button {
+  background: none;
+  border: none;
+  color: var(--menu-text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.copy-button:hover {
+  color: var(--menu-text-hover);
+}
+
+.location-button {
+  margin-top: 10px;
+  width: 100%;
+  padding: 8px;
+  background: var(--menu-item-bg);
+  border: 1px solid var(--menu-border);
+  border-radius: 6px;
+  color: var(--menu-text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.location-button:hover {
+  background: var(--menu-hover-bg);
+  border-color: var(--menu-text-secondary);
+}
+
 .back-button {
   width: 100%;
   padding: 12px 20px;
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--menu-text);
   background: transparent;
   border: none;
   border-radius: 0;
@@ -107,12 +195,12 @@
 }
 
 .back-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 1);
+  background: var(--menu-hover-bg);
+  color: var(--menu-text-hover);
 }
 
 .back-button:active {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--menu-item-hover-bg);
 }
 
 .zoom-options {
@@ -120,11 +208,11 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--menu-border);
 }
 
 .zoom-options span {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--menu-text);
   font-size: 0.9rem;
   white-space: nowrap;
 }
@@ -138,35 +226,35 @@
 .zoom-btn {
   width: 36px;
   height: 36px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--menu-item-bg);
+  border: 1px solid var(--menu-border);
   border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--menu-text);
   font-size: 0.8rem;
   outline: none;
   padding: 0;
 }
 
 .zoom-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 1);
+  background: var(--menu-hover-bg);
+  border-color: var(--menu-text-secondary);
+  color: var(--menu-text-hover);
 }
 
 .zoom-btn:active {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--menu-item-hover-bg);
   transform: translateY(1px);
 }
 
 .zoom-btn.active {
-  background: rgba(100, 200, 255, 0.3);
-  border-color: rgba(100, 200, 255, 0.3);
-  box-shadow: 0 0 8px rgba(100, 200, 255, 0.2);
+  background: var(--menu-active-bg);
+  border-color: var(--menu-active-border);
+  box-shadow: 0 0 8px var(--menu-active-bg);
 }
 
 @media (max-width: 768px) {
@@ -196,11 +284,11 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--menu-border);
 }
 
 .theme-options span {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--menu-text);
   font-size: 0.9rem;
   white-space: nowrap;
 }
@@ -214,15 +302,15 @@
 .theme-btn {
   flex: 1;
   height: 40px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--menu-item-bg);
+  border: 1px solid var(--menu-border);
   border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--menu-text);
   font-size: 0.8rem;
   outline: none;
   padding: 0;
@@ -230,23 +318,23 @@
 }
 
 .theme-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 1);
+  background: var(--menu-hover-bg);
+  border-color: var(--menu-text-secondary);
+  color: var(--menu-text-hover);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .theme-btn:active {
   transform: translateY(0);
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--menu-item-hover-bg);
 }
 
 .theme-btn.active {
-  background: rgba(100, 200, 255, 0.3);
-  border-color: rgba(100, 200, 255, 0.5);
-  box-shadow: 0 0 0 2px rgba(100, 200, 255, 0.5), 0 0 12px rgba(100, 200, 255, 0.3);
-  color: rgba(255, 255, 255, 1);
+  background: var(--menu-active-bg);
+  border-color: var(--menu-active-border);
+  box-shadow: var(--menu-active-shadow);
+  color: var(--menu-text-hover);
   font-weight: 600;
 }
 
@@ -274,37 +362,19 @@ body.canvas-bg-light .grid-background {
   background: #fff !important;
 }
 
-/* 根据背景调整外部菜单按钮和图标颜色 */
-body.canvas-bg-dark .menu-icon {
-  background: rgba(20, 20, 20, 0.9); /* 深色背景 */
-  border: 1px solid rgba(100, 100, 100, 0.5);
-  color: rgba(200, 200, 200, 0.9);
-}
-
-body.canvas-bg-dark .menu-icon:hover {
-  background: rgba(60, 60, 60, 0.9);
-  border-color: rgba(150, 150, 150, 0.6);
-  color: rgba(255, 255, 255, 1);
-}
-
-body.canvas-bg-light .menu-icon {
-  background: rgba(245, 245, 245, 0.9); /* 浅色背景 */
-  border: 1px solid rgba(150, 150, 150, 0.5);
-  color: rgba(50, 50, 50, 0.9);
-}
-
-body.canvas-bg-light .menu-icon:hover {
-  background: rgba(200, 200, 200, 0.9);
-  border-color: rgba(100, 100, 100, 0.6);
-  color: rgba(0, 0, 0, 1);
-}
-
 /* 右上角CanvasModel按钮和橡皮擦按钮的颜色调整 */
 body.canvas-bg-dark .model-display,
 body.canvas-bg-dark .eraser-display {
-  background: rgba(20, 20, 20, 0.9); /* 深色背景 */
-  border: 1px solid rgba(100, 100, 100, 0.5);
-  color: rgba(200, 200, 200, 0.9);
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-border);
+  color: var(--menu-text);
+}
+
+body.canvas-bg-light .model-display,
+body.canvas-bg-light .eraser-display {
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-border);
+  color: var(--menu-text);
 }
 
 body.canvas-bg-dark .model-display:hover,

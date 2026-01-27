@@ -14,7 +14,7 @@
     linear-gradient(90deg, rgba(128, 128, 128, 0.3) 1px, transparent 1px);
   background-size: var(--grid-size) var(--grid-size);
   pointer-events: none;
-  z-index: 10;
+  z-index: 1;
   transform-origin: center center;
 }
 
