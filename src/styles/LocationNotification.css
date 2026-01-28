@@ -1,7 +1,7 @@
 .location-notification {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
+  /* Removed fixed positioning to allow stacking in container */
+  position: relative; 
+  /* bottom/left removed as they are handled by container */
   background: rgba(20, 20, 40, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(100, 200, 255, 0.3);
@@ -10,9 +10,21 @@
   width: 280px;
   color: white;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  /* z-index handled by container */
   animation: slide-in-left 0.3s ease-out;
   overflow: hidden;
+  pointer-events: auto; /* Enable clicks on notifications */
+  margin-top: 10px; /* Spacing between notifications */
+}
+
+.notification-container {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none; /* Let clicks pass through container area */
 }
 
 .location-notification.exiting {

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import '../styles/LocationNotification.css'
+import '../styles/LocationNotification.css' // Reuse styles
 
-interface LocationNotificationProps {
+interface LayerOrderNotificationProps {
   senderName: string
-  onTrack: () => void
+  onApply: () => void
   onClose: () => void
 }
 
-const LocationNotification: React.FC<LocationNotificationProps> = ({ senderName, onTrack, onClose }) => {
+const LayerOrderNotification: React.FC<LayerOrderNotificationProps> = ({ senderName, onApply, onClose }) => {
   const [isExiting, setIsExiting] = useState(false)
   const onCloseRef = React.useRef(onClose)
 
@@ -32,8 +32,8 @@ const LocationNotification: React.FC<LocationNotificationProps> = ({ senderName,
     }
   }, []) // Empty dependency array ensures timer is set only once
 
-  const handleTrack = () => {
-    onTrack()
+  const handleApply = () => {
+    onApply()
     onClose()
   }
 
@@ -41,11 +41,11 @@ const LocationNotification: React.FC<LocationNotificationProps> = ({ senderName,
     <div className={`location-notification ${isExiting ? 'exiting' : ''}`}>
       <div className="notification-content">
         <div className="notification-text">
-          {senderName}的坐标信息
+          {senderName}的画布层级信息
         </div>
       </div>
-      <button className="track-button" onClick={handleTrack}>
-        追踪
+      <button className="track-button" onClick={handleApply}>
+        应用
       </button>
       <div className="progress-bar-container">
         <div className="progress-bar" />
@@ -54,4 +54,4 @@ const LocationNotification: React.FC<LocationNotificationProps> = ({ senderName,
   )
 }
 
-export default LocationNotification
+export default LayerOrderNotification

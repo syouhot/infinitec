@@ -13,7 +13,7 @@ type RoomDeletedCallback = (roomId: string) => void
 type DrawEventCallback = (data: any) => void
 type LocationCallback = (data: { userId: string, userName: string, x: number, y: number }) => void
 type SnapshotCallback = (data: string, layerOrder?: string[]) => void
-type LayerOrderCallback = (layerOrder: string[]) => void
+type LayerOrderCallback = (data: { layerOrder: string[], userId: string, userName?: string }) => void
 type RoomUsersCallback = (users: { userId: string, userName: string }[]) => void
 
 class WebSocketService {
@@ -88,13 +88,18 @@ class WebSocketService {
 
   sendSnapshot(data: string, layerOrder?: string[]): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.userId) {
+      // Ensure 'local' is replaced with actual userId before sending
+      const sanitizedLayerOrder = layerOrder 
+        ? layerOrder.map(id => id === 'local' ? this.userId! : id)
+        : undefined;
+
       const message: WebSocketMessage = {
         type: 'save_snapshot',
         roomId: this.roomId,
         userId: this.userId,
         data: {
           data,
-          layerOrder
+          layerOrder: sanitizedLayerOrder
         }
       }
       this.ws.send(JSON.stringify(message))
@@ -103,12 +108,16 @@ class WebSocketService {
 
   sendLayerOrder(layerOrder: string[]): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.userId) {
+      // Ensure 'local' is replaced with actual userId before sending
+      const sanitizedLayerOrder = layerOrder.map(id => id === 'local' ? this.userId! : id);
+
       const message: WebSocketMessage = {
         type: 'layer_order_update',
         roomId: this.roomId,
         userId: this.userId,
+        userName: this.userName || undefined, // Include userName
         data: {
-          layerOrder
+          layerOrder: sanitizedLayerOrder
         }
       }
       this.ws.send(JSON.stringify(message))
@@ -200,7 +209,11 @@ class WebSocketService {
               }
             } else if (message.type === 'layer_order_update') {
                if (this.onLayerOrderCallback && message.data && message.data.layerOrder) {
-                 this.onLayerOrderCallback(message.data.layerOrder)
+                 this.onLayerOrderCallback({
+                    layerOrder: message.data.layerOrder,
+                    userId: message.userId || '',
+                    userName: message.userName || message.userId
+                 })
                }
             } else if (message.type === 'room_users_update') {
               if (this.onRoomUsersCallback && message.data && message.data.users) {

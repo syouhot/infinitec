@@ -102,7 +102,7 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
     
     if (user) {
       try {
-        await websocketService.connect(user.id, roomId)
+        await websocketService.connect(user.id, roomId, user.name)
         console.log('WebSocket连接已建立')
       } catch (error) {
         console.error('WebSocket连接失败:', error)
@@ -120,7 +120,7 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
     
     if (user) {
       try {
-        await websocketService.connect(user.id, roomId)
+        await websocketService.connect(user.id, roomId, user.name)
         console.log('WebSocket连接已建立')
       } catch (error) {
         console.error('WebSocket连接失败:', error)

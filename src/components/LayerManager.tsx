@@ -2,6 +2,8 @@ import React, { useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { useCanvasStore } from '../store';
 import { websocketService } from '../services/websocketService';
+import { LuEye, LuEyeOff } from "react-icons/lu";
+import { FaLocationArrow } from "react-icons/fa6";
 import '../styles/LayerManager.css';
 
 const ItemType = 'LAYER_ITEM';
@@ -13,9 +15,11 @@ interface LayerItemProps {
   moveLayer: (dragIndex: number, hoverIndex: number) => void;
   onDrop: () => void;
   isOwner: boolean;
+  isHidden: boolean;
+  onToggleVisibility: () => void;
 }
 
-const LayerItem: React.FC<LayerItemProps> = ({ id, label, index, moveLayer, onDrop, isOwner }) => {
+const LayerItem: React.FC<LayerItemProps> = ({ id, label, index, moveLayer, onDrop, isOwner, isHidden, onToggleVisibility }) => {
   const ref = useRef<HTMLDivElement>(null);
 
   const [{ handlerId }, drop] = useDrop({
@@ -109,7 +113,27 @@ const LayerItem: React.FC<LayerItemProps> = ({ id, label, index, moveLayer, onDr
           {label}
         </span>
       </div>
-      <span className="layer-item-handle">≡</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {id !== 'local' && (
+          <div 
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              onToggleVisibility(); 
+            }}
+            style={{ 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center',
+              color: 'var(--menu-text-secondary)',
+              padding: '4px'
+            }}
+            title={isHidden ? "显示" : "隐藏"}
+          >
+            {isHidden ? <LuEyeOff size={16} /> : <LuEye size={16} />}
+          </div>
+        )}
+        <span className="layer-item-handle">≡</span>
+      </div>
     </div>
   );
 };
@@ -118,6 +142,8 @@ export const LayerManager: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
   const layerOrder = useCanvasStore(state => state.layerOrder);
   const setLayerOrder = useCanvasStore(state => state.setLayerOrder);
   const onlineUsers = useCanvasStore(state => state.onlineUsers);
+  const hiddenLayerIds = useCanvasStore(state => state.hiddenLayerIds);
+  const toggleLayerVisibility = useCanvasStore(state => state.toggleLayerVisibility);
   
   // Ensure layerOrder contains all onlineUsers (except maybe 'local' if it's handled separately)
   // Actually, CanvasMain handles syncing layerOrder with onlineUsers.
@@ -146,8 +172,7 @@ export const LayerManager: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
   }, [layerOrder, setLayerOrder]);
 
   const handleDrop = React.useCallback(() => {
-      // Sync change
-      websocketService.sendLayerOrder(useCanvasStore.getState().layerOrder);
+      // No auto-sync
   }, []);
 
   const getLabel = (id: string) => {
@@ -164,6 +189,10 @@ export const LayerManager: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
   // Reverse layerOrder for display (Top Layer at Top of List)
   const displayLayers = [...layerOrder].reverse();
 
+  const handleSendLayerOrder = () => {
+    websocketService.sendLayerOrder(layerOrder);
+  };
+
   return (
     <div className="layer-manager-container">
       <div className="layer-manager-header">
@@ -178,8 +207,20 @@ export const LayerManager: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
           moveLayer={moveLayer}
           onDrop={handleDrop}
           isOwner={isOwner}
+          isHidden={hiddenLayerIds.includes(id)}
+          onToggleVisibility={() => toggleLayerVisibility(id)}
         />
       ))}
+      <div style={{ padding: '8px 0' }}>
+        <button
+          onClick={handleSendLayerOrder}
+          className="location-button"
+          title="发送当前层级给所有人"
+          style={{ width: '100%', justifyContent: 'center' }}
+        >
+          <FaLocationArrow size={12} /> 发送层级
+        </button>
+      </div>
     </div>
   );
 };         

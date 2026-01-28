@@ -14,6 +14,7 @@ import PolygonEditor from './PolygonEditor'
 import TextEditor from './TextEditor'
 import ImageEditor from './ImageEditor'
 import LocationNotification from './LocationNotification'
+import LayerOrderNotification from './LayerOrderNotification'
 import type { RectangleEditorRef } from './RectangleEditor'
 import type { LineEditorRef } from './LineEditor'
 import type { CircleEditorRef } from './CircleEditor'
@@ -78,7 +79,21 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const broadcastLocationTrigger = useCanvasStore((state) => state.broadcastLocationTrigger)
   const theme = useCanvasStore((state) => state.theme)
   const { user } = useAuth()
-  const [locationNotification, setLocationNotification] = useState<{ senderName: string, x: number, y: number } | null>(null)
+  
+  type NotificationItem = 
+    | { id: string, type: 'location', senderName: string, x: number, y: number }
+    | { id: string, type: 'layerOrder', senderName: string, layerOrder: string[] };
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  const addNotification = useCallback((notification: Omit<NotificationItem, 'id'>) => {
+      const id = Math.random().toString(36).substr(2, 9);
+      setNotifications(prev => [...prev, { ...notification, id } as NotificationItem]);
+  }, []);
+
+  const removeNotification = useCallback((id: string) => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
   
   const [isDrawing, setIsDrawing] = useState(false)
   const lastPositionRef = useRef<{ x: number, y: number } | null>(null)
@@ -133,10 +148,10 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   useEffect(() => {
     websocketService.setLocationCallback((data) => {
       if (data.userId !== user?.id) {
-        setLocationNotification({ senderName: data.userName, x: data.x, y: data.y })
+        addNotification({ type: 'location', senderName: data.userName, x: data.x, y: data.y });
       }
     })
-  }, [user?.id])
+  }, [user?.id, addNotification])
 
   // Polygon Drawing State
   const [drawingPolygonPoints, setDrawingPolygonPoints] = useState<Point[]>([]);
@@ -245,6 +260,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
   const layerOrder = useCanvasStore(state => state.layerOrder);
   const setLayerOrder = useCanvasStore(state => state.setLayerOrder);
   const setOnlineUsers = useCanvasStore(state => state.setOnlineUsers);
+  const hiddenLayerIds = useCanvasStore(state => state.hiddenLayerIds);
 
   const activeUserIds = useMemo(() => new Set(activeUserIdsList), [activeUserIdsList]);
 
@@ -302,14 +318,19 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       }
     })
     
-    websocketService.setLayerOrderCallback((order) => {
+    websocketService.setLayerOrderCallback((data) => {
+      
+      const { layerOrder: order, userId, userName } = data;
+       
+       // Show notification if it's from another user
        const myId = websocketService.getUserId()
-       const processedOrder = order.map(id => id === myId ? 'local' : id)
-                                   .filter((id, index, self) => self.indexOf(id) === index);
-       if (!processedOrder.includes('local')) {
-           processedOrder.push('local') // Ensure local is always present
+       if (userId !== myId) {
+          addNotification({
+             type: 'layerOrder',
+             senderName: userName || userId,
+             layerOrder: order
+          });
        }
-       setLayerOrder(processedOrder)
     })
 
     websocketService.setRoomUsersCallback((users) => {
@@ -359,6 +380,16 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
        }
     })
   }, [setActiveUserIdsList, setLayerOrder, setOnlineUsers])
+
+  const applyLayerOrder = (order: string[]) => {
+      const myId = websocketService.getUserId()
+      const processedOrder = order.map(id => id === myId ? 'local' : id)
+                                  .filter((id, index, self) => self.indexOf(id) === index);
+      if (!processedOrder.includes('local')) {
+          processedOrder.push('local') // Ensure local is always present
+      }
+      setLayerOrder(processedOrder)
+  };
 
   const layerRefs = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
@@ -1957,7 +1988,8 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
             height: `${canvasSize.height}px`,
             transform: `translate(calc(-50% + ${canvasOffset.x}px), calc(-50% + ${canvasOffset.y}px)) scale(${zoomScale})`,
             pointerEvents: 'none',
-            zIndex: layerOrder.indexOf(uid) !== -1 ? layerOrder.indexOf(uid) + 10 : 5
+            zIndex: layerOrder.indexOf(uid) !== -1 ? layerOrder.indexOf(uid) + 10 : 5,
+            display: hiddenLayerIds.includes(uid) ? 'none' : 'block'
           }}
         />
       ))}
@@ -2253,19 +2285,34 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         </div>
       </div>
 
-      {locationNotification && (
-        <LocationNotification
-          senderName={locationNotification.senderName}
-          onTrack={() => {
-            const { x, y } = locationNotification
-            const newOffsetX = window.innerWidth / 2 - x * zoomScale
-            const newOffsetY = window.innerHeight / 2 - y * zoomScale
-            setCanvasOffset({ x: newOffsetX, y: newOffsetY })
-            setLocationNotification(null)
-          }}
-          onClose={() => setLocationNotification(null)}
-        />
-      )}
+      <div className="notification-container">
+        {notifications.map(notification => (
+          notification.type === 'location' ? (
+            <LocationNotification
+              key={notification.id}
+              senderName={notification.senderName}
+              onTrack={() => {
+                const { x, y } = notification
+                const newOffsetX = window.innerWidth / 2 - x * zoomScale
+                const newOffsetY = window.innerHeight / 2 - y * zoomScale
+                setCanvasOffset({ x: newOffsetX, y: newOffsetY })
+                removeNotification(notification.id)
+              }}
+              onClose={() => removeNotification(notification.id)}
+            />
+          ) : (
+            <LayerOrderNotification
+              key={notification.id}
+              senderName={notification.senderName}
+              onApply={() => {
+                applyLayerOrder(notification.layerOrder)
+                removeNotification(notification.id)
+              }}
+              onClose={() => removeNotification(notification.id)}
+            />
+          )
+        ))}
+      </div>
     </div>
   )
 }

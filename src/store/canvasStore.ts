@@ -11,6 +11,7 @@ interface CanvasState {
   currentImage: HTMLImageElement | null
   broadcastLocationTrigger: number
   layerOrder: string[]
+  hiddenLayerIds: string[]
   activeUserIds: string[]
   onlineUsers: { userId: string, userName: string }[]
   theme: 'default' | 'dark' | 'light'
@@ -24,6 +25,7 @@ interface CanvasState {
   setCurrentImage: (image: HTMLImageElement | null) => void
   triggerLocationBroadcast: () => void
   setLayerOrder: (order: string[]) => void
+  toggleLayerVisibility: (id: string) => void
   setActiveUserIds: (ids: string[]) => void
   setOnlineUsers: (users: { userId: string, userName: string }[]) => void
 }
@@ -38,6 +40,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   currentImage: null,
   broadcastLocationTrigger: 0,
   layerOrder: [],
+  hiddenLayerIds: [],
   activeUserIds: ['local'],
   onlineUsers: [],
   theme: 'default',
@@ -51,6 +54,14 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   setCurrentImage: (image) => set({ currentImage: image }),
   triggerLocationBroadcast: () => set({ broadcastLocationTrigger: Date.now() }),
   setLayerOrder: (order) => set({ layerOrder: order }),
+  toggleLayerVisibility: (id) => set((state) => {
+    const isHidden = state.hiddenLayerIds.includes(id);
+    return {
+      hiddenLayerIds: isHidden
+        ? state.hiddenLayerIds.filter(hid => hid !== id)
+        : [...state.hiddenLayerIds, id]
+    };
+  }),
   setActiveUserIds: (ids) => set({ activeUserIds: ids }),
   setOnlineUsers: (users) => set({ onlineUsers: users })
 }))
