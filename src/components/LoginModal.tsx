@@ -4,7 +4,6 @@ import { CloseOutlined } from '@ant-design/icons'
 import '../styles/RegisterModal.css'
 import { loginUser } from '../services/userService'
 import { useAuth } from '../contexts/AuthContext'
-import type { LoginData } from '../services/apiModel'
 
 interface LoginModalProps {
   isOpen: boolean
@@ -14,22 +13,16 @@ interface LoginModalProps {
 
 function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalProps) {
   const [formData, setFormData] = useState({
-    phone: '',
+    email: '',
     password: ''
   })
   const [isClosing, setIsClosing] = useState(false)
   const { login } = useAuth()
 
   useEffect(() => {
-    const setLoginData = (data: LoginData) => {
-      setFormData({
-        phone: data.phone,
-        password: data.password
-      })
-    }
     if (isOpen) {
-      setLoginData({
-        phone: '',
+      setFormData({
+        email: '',
         password: ''
       })
     }
@@ -52,19 +45,14 @@ function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalProps) {
   }
 
   const handleLogin = async () => {
-    if (!formData.phone || !formData.password) {
-      message.warning('请填写手机号和密码')
-      return
-    }
-
-    if (formData.phone.length !== 11) {
-      message.warning('请输入正确的手机号')
+    if (!formData.email || !formData.password) {
+      message.warning('请填写邮箱和密码')
       return
     }
 
     try {
       const result = await loginUser({
-        phone: formData.phone,
+        email: formData.email,
         password: formData.password
       })
 
@@ -73,7 +61,7 @@ function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalProps) {
       message.success('登录成功！')
       handleClose()
       setFormData({
-        phone: '',
+        email: '',
         password: ''
       })
     } catch (error) {
@@ -93,14 +81,13 @@ function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalProps) {
         <h2 className="register-modal-title">用户登录</h2>
         <div className="register-form">
           <div className="form-group">
-            <label>手机号</label>
+            <label>邮箱</label>
             <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
+              type="email"
+              name="email"
+              value={formData.email}
               onChange={handleInputChange}
-              placeholder="请输入手机号"
-              maxLength={11}
+              placeholder="请输入邮箱"
             />
           </div>
           <div className="form-group">

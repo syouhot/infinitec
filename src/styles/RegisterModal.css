@@ -247,3 +247,55 @@
   color: rgba(100, 200, 255, 1);
   text-decoration: underline;
 }
+
+/* Success Modal Styles */
+.register-success-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: fade-in 0.5s ease-out;
+  padding: 20px 0;
+}
+
+.success-icon-wrapper {
+  font-size: 60px;
+  color: #52c41a;
+  margin-bottom: 25px;
+  filter: drop-shadow(0 0 15px rgba(82, 196, 26, 0.4));
+  animation: scale-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.success-message {
+  margin-bottom: 30px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+}
+
+.success-message p {
+  margin: 8px 0;
+  font-size: 1rem;
+}
+
+.highlight-email {
+  color: #667eea;
+  font-weight: bold;
+  padding: 0 4px;
+}
+
+.sub-text {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 0.9rem !important;
+  margin-top: 15px !important;
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

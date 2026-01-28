@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { message } from 'antd'
+import { message, Dropdown } from 'antd'
+import { type MenuProps } from 'antd'
+import { UserOutlined, LogoutOutlined, DownOutlined } from '@ant-design/icons'
 import '../styles/Home.css'
 import RegisterModal from './RegisterModal'
 import LoginModal from './LoginModal'
 import RoomModal from './RoomModal'
+import ProfileModal from './ProfileModal'
 import { useAuth } from '../contexts/AuthContext'
 import { useAppStore } from "../store"
 import { websocketService } from '../services/websocketService'
@@ -18,8 +21,24 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showRoomModal, setShowRoomModal] = useState(false)
-  const { user, isAuthenticated, logout } = useAuth()
+  const [showProfileModal, setShowProfileModal] = useState(false)
+  const { user, isAuthenticated, logout, login } = useAuth()
   const { setRoomId, setIsRoomOwner } = useAppStore()
+
+  const userMenuItems: MenuProps['items'] = [
+    {
+      key: 'profile',
+      label: '个人信息',
+      icon: <UserOutlined />,
+      onClick: () => setShowProfileModal(true),
+    },
+    {
+      key: 'logout',
+      label: '退出登录',
+      icon: <LogoutOutlined />,
+      onClick: logout,
+    },
+  ]
 
   const handleSwitchToLogin = () => {
     setShowRegisterModal(false)
@@ -166,10 +185,17 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
       {!isHidden && (
         isAuthenticated ? (
           <div className="user-info">
-            <span className="user-name">{user?.name}</span>
-            <button className="logout-button" onClick={logout}>
-              退出
-            </button>
+            <Dropdown 
+              menu={{ items: userMenuItems }} 
+              placement="bottomRight" 
+              arrow 
+              overlayClassName="custom-dropdown-menu"
+            >
+              <div className="user-dropdown-trigger">
+                <span className="user-name">{user?.name}</span>
+                <DownOutlined className="dropdown-arrow" />
+              </div>
+            </Dropdown>
           </div>
         ) : (
           <div className="auth-buttons">
@@ -209,8 +235,8 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
         onClose={handleCloseRegisterModal}
         onSwitchToLogin={handleSwitchToLogin}
       />
-      <LoginModal 
-        isOpen={showLoginModal} 
+      <LoginModal
+        isOpen={showLoginModal}
         onClose={handleCloseLoginModal}
         onSwitchToRegister={handleSwitchToRegister}
       />
@@ -219,6 +245,12 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
         onClose={() => setShowRoomModal(false)}
         onCreateRoom={handleCreateRoom}
         onJoinRoom={handleJoinRoom}
+      />
+      <ProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        user={user}
+        onUpdate={login}
       />
     </>
   )

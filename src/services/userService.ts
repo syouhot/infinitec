@@ -1,4 +1,4 @@
-import type { RegisterData, LoginData, RegisterResponse, LoginResponse, CheckPhoneResponse } from './apiModel'
+import type { RegisterData, LoginData, UpdateProfileData, RegisterResponse, LoginResponse, CheckPhoneResponse, UpdateProfileResponse } from './apiModel'
 import { api } from './apiFetch'
 
 export async function checkPhoneExists(phone: string): Promise<boolean> {
@@ -40,5 +40,20 @@ export async function loginUser(data: LoginData): Promise<LoginResponse> {
   } catch (error) {
     console.error('登录失败:', error)
     throw new Error(error instanceof Error ? error.message : '登录失败，请稍后重试')
+  }
+}
+
+export async function updateUser(data: UpdateProfileData): Promise<UpdateProfileResponse> {
+  try {
+    const result = await api.post<UpdateProfileResponse>('/api/user/update', data)
+    
+    if (!result.success) {
+      throw new Error(result.message || '更新失败')
+    }
+    
+    return result
+  } catch (error) {
+    console.error('更新用户信息失败:', error)
+    throw new Error(error instanceof Error ? error.message : '更新用户信息失败，请稍后重试')
   }
 }

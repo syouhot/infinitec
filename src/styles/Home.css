@@ -376,16 +376,20 @@
   z-index: 100;
 }
 
+/* Updated User Info Styles */
 .user-info {
   position: fixed;
   top: 20px;
   right: 20px;
-  padding: 12px 24px;
+  padding: 8px 16px;
   border-radius: 8px;
   z-index: 100;
   display: flex;
   align-items: center;
   gap: 16px;
+  background: rgba(20, 20, 40, 0.4);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .user-name {
@@ -395,27 +399,80 @@
   letter-spacing: 0.1em;
 }
 
-.logout-button {
-  padding: 6px 16px;
-  border-radius: 6px;
-  color: rgba(255, 200, 200, 0.9);
-  font-size: 0.9rem;
-  font-weight: 500;
+.user-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
   transition: all 0.3s ease;
-  letter-spacing: 0.1em;
-  background: rgba(100, 200, 255, 0.1);
+}
+
+.user-dropdown-trigger:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-arrow {
+  color: rgba(200, 230, 255, 0.7);
+  font-size: 12px;
+  transition: transform 0.3s ease;
+}
+
+.user-dropdown-trigger:hover .dropdown-arrow {
+  transform: rotate(180deg);
+  color: rgba(200, 230, 255, 1);
+}
+
+.logout-button {
+  display: none;
+}
+
+/* Custom Dropdown Styles */
+.custom-dropdown-menu .ant-dropdown-menu {
+  background-color: rgba(30, 30, 50, 0.85) !important;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(100, 200, 255, 0.2);
-  color: rgba(200, 230, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  border-radius: 12px;
 }
 
-.logout-button:hover {
-  background: rgba(100, 200, 255, 0.3);
-  border-color: rgba(100, 200, 255, 0.4);
-  transform: translateY(-1px);
+.custom-dropdown-menu .ant-dropdown-menu-item {
+  color: rgba(200, 230, 255, 0.9) !important;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+  padding: 10px 16px;
 }
 
-.logout-button:active {
-  transform: translateY(0);
+.custom-dropdown-menu .ant-dropdown-menu-item:last-child {
+  margin-bottom: 0;
+}
+
+.custom-dropdown-menu .ant-dropdown-menu-item:hover,
+.custom-dropdown-menu .ant-dropdown-menu-item-active {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  transform: translateX(4px);
+}
+
+.custom-dropdown-menu .ant-dropdown-menu-item .anticon {
+  color: rgba(200, 230, 255, 0.7);
+  font-size: 16px;
+  margin-right: 12px;
+}
+
+.custom-dropdown-menu .ant-dropdown-menu-item:hover .anticon,
+.custom-dropdown-menu .ant-dropdown-menu-item-active .anticon {
+  color: #ffffff;
+}
+
+/* Customize Arrow */
+.custom-dropdown-menu .ant-dropdown-arrow {
+  background: transparent !important;
+}
+
+.custom-dropdown-menu .ant-dropdown-arrow::before {
+  background-color: rgba(30, 30, 50, 0.85) !important;
 }

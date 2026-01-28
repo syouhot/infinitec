@@ -643,14 +643,15 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
         if (!stroke.imageSrc || stroke.points.length < 1) return;
 
         let img = imageCacheRef.current.get(stroke.imageSrc);
-        if (!img) {
-          img = new Image();
-          img.src = stroke.imageSrc;
-          img.onload = () => {
-            redrawLayer(stroke.userId);
-          };
-          imageCacheRef.current.set(stroke.imageSrc, img);
-        }
+      if (!img) {
+        img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = stroke.imageSrc;
+        img.onload = () => {
+          redrawLayer(stroke.userId);
+        };
+        imageCacheRef.current.set(stroke.imageSrc, img);
+      }
 
         if (img.complete) {
           const p1 = stroke.points[0];
@@ -975,6 +976,7 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
       let img = imageCacheRef.current.get(stroke.imageSrc);
       if (!img) {
         img = new Image();
+        img.crossOrigin = "Anonymous";
         img.src = stroke.imageSrc;
         img.onload = () => {
           redrawLayer(stroke.userId);
@@ -1615,8 +1617,6 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
           // 由于之前 Ctrl 的逻辑是正方形，我们保持它：从中心绘制正方形
           // 要使其只是"从中心"而没有正方形，我们会直接使用 halfWidth 和 halfHeight。
           // 但通常修饰键会添加约束。
-          // 用户要求"按住 Ctrl... 以中心点为中心绘制"。
-          // 之前的请求是"Ctrl... 绘制正方形"。
           // 最安全的假设是他们想要"从中心绘制正方形"。
           // 让我们使用最大维度作为正方形。
           const size = Math.max(halfWidth, halfHeight);

@@ -1,12 +1,22 @@
 export interface RegisterData {
     name: string
-    phone: string
+    phone?: string
+    email: string
     password: string
 }
 
 export interface LoginData {
-    phone: string
+    email: string
     password: string
+}
+
+export interface SendEmailCodeData {
+    email: string
+}
+
+export interface SendEmailCodeResponse {
+    success: boolean
+    message: string
 }
 
 export interface RegisterResponse {
@@ -16,7 +26,8 @@ export interface RegisterResponse {
     user: {
         id: string
         name: string
-        phone: string
+        phone?: string
+        email?: string
     }
 }
 
@@ -27,12 +38,30 @@ export interface LoginResponse {
     user: {
         id: string
         name: string
-        phone: string
+        phone?: string
+        email?: string
     }
 }
 
 export interface CheckPhoneResponse {
     exists: boolean
+}
+
+export interface UpdateProfileData {
+    name: string
+    phone?: string
+}
+
+export interface UpdateProfileResponse {
+    success: boolean
+    message: string
+    token: string
+    user: {
+        id: string
+        name: string
+        phone?: string
+        email?: string
+    }
 }
 
 export interface CreateRoomData {

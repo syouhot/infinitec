@@ -11,7 +11,9 @@ import {
   FaEraser,
   FaImage
 } from 'react-icons/fa6'
+import { message } from 'antd'
 import { useToolStore, useCanvasStore } from '../store'
+import { buildApiUrl } from '../services/apiConfig'
 import '../styles/Toolbar.css'
 
 function Toolbar() {
@@ -21,19 +23,34 @@ function Toolbar() {
     const setCurrentImage = useCanvasStore((state) => state.setCurrentImage)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
       if (file) {
-        const reader = new FileReader()
-        reader.onload = (event) => {
+        const formData = new FormData()
+        formData.append('image', file)
+
+        try {
+          const response = await fetch(buildApiUrl('/api/upload'), {
+            method: 'POST',
+            body: formData
+          })
+
+          if (!response.ok) {
+            throw new Error('Upload failed')
+          }
+
+          const data = await response.json()
           const img = new Image()
+          img.crossOrigin = "Anonymous"
           img.onload = () => {
             setCurrentImage(img)
             setSelectedTool('image')
           }
-          img.src = event.target?.result as string
+          img.src = data.url
+        } catch (error) {
+          console.error('Image upload failed:', error)
+          message.error('图片上传失败，请重试')
         }
-        reader.readAsDataURL(file)
       }
       e.target.value = ''
     }
