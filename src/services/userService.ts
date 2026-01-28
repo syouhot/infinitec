@@ -1,5 +1,35 @@
-import type { RegisterData, LoginData, UpdateProfileData, RegisterResponse, LoginResponse, CheckPhoneResponse, UpdateProfileResponse } from './apiModel'
+import type { RegisterData, LoginData, UpdateProfileData, RegisterResponse, LoginResponse, CheckPhoneResponse, UpdateProfileResponse, ResetPasswordData, ResetPasswordResponse, ChangePasswordData, ChangePasswordResponse } from './apiModel'
 import { api } from './apiFetch'
+
+export async function changePassword(data: ChangePasswordData): Promise<ChangePasswordResponse> {
+  try {
+    const result = await api.post<ChangePasswordResponse>('/api/user/change-password', data)
+    
+    if (!result.success) {
+      throw new Error(result.message || '修改密码失败')
+    }
+    
+    return result
+  } catch (error) {
+    console.error('修改密码失败:', error)
+    throw new Error(error instanceof Error ? error.message : '修改密码失败，请稍后重试')
+  }
+}
+
+export async function resetPassword(data: ResetPasswordData): Promise<ResetPasswordResponse> {
+  try {
+    const result = await api.post<ResetPasswordResponse>('/api/reset-password', data)
+    
+    if (!result.success) {
+      throw new Error(result.message || '重置密码失败')
+    }
+    
+    return result
+  } catch (error) {
+    console.error('重置密码失败:', error)
+    throw new Error(error instanceof Error ? error.message : '重置密码失败，请稍后重试')
+  }
+}
 
 export async function checkPhoneExists(phone: string): Promise<boolean> {
   console.log('检查手机号:', phone);

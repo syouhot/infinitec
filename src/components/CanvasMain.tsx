@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle,useMemo } from 'react'
 import { CANVAS_CONFIG, AUTO_SAVE_INTERVAL_MINUTES } from '../constants'
-import { createBoundary, clampOffset, calculateClampedOffset } from '../util/boundary'
+import { createBoundary, clampOffset, calculateClampedOffset } from '../utils/boundary'
 import { websocketService } from '../services/websocketService'
 import { useAuth } from '../contexts/AuthContext'
 import { useAppStore, useToolStore, useCanvasStore } from '../store/index' // 假设 store 存在用于 userId
@@ -428,7 +428,11 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     ctx.stroke();
   }, [getAdaptiveColor]);
   const redrawLayer = useCallback((uid: string) => {
-    const canvas = layerRefs.current.get(uid);
+    const myId = websocketService.getUserId();
+    // Map current user ID to 'local' layer to ensure we find the correct canvas
+    const targetId = (uid === myId) ? 'local' : uid;
+
+    const canvas = layerRefs.current.get(targetId);
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -441,17 +445,6 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
     ctx.restore();
 
     // 为此用户重绘所有笔画
-    // 注意：我们需要重新应用变换进行绘制吗？
-    // 画布通过 updateSizes (ctx.setTransform) 应用了变换。
-    // 但 clearRect 需要单位矩阵或完全清除。
-    // 清除后，我们应该恢复变换。
-    // `updateSizes` 设置默认变换。
-    // 但在这里，如果我们没有正确保存/恢复或设置了单位矩阵，可能会丢失它。
-    // 实际上，`updateSizes` 在上下文状态上设置变换。
-    // `ctx.clearRect` 清除像素但不重置变换。
-    // 然而，如果我们执行 `ctx.setTransform(1,0,0,1,0,0)` 来清除，我们会丢失填充变换。
-    // 所以我们必须在清除后将其重置为填充变换。
-
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
     const paddingX = (canvas.width / dpr - windowWidth) / 2;
@@ -459,18 +452,15 @@ const CanvasMain = forwardRef((props: CanvasMainProps, ref: any) => {
 
     ctx.setTransform(dpr, 0, 0, dpr, paddingX * dpr, paddingY * dpr);
 
-    const myId = websocketService.getUserId();
-
     strokesRef.current.forEach(stroke => {
-      // Allow drawing if stroke.userId matches uid
-      // OR if uid is 'local' and stroke.userId is myId
-      let shouldDraw = stroke.userId === uid;
-      if (uid === 'local' && stroke.userId === myId) {
-          shouldDraw = true;
-      }
-      // Also handle case where we are asked to redraw 'local' but stroke is 'local' (legacy/offline)
-      if (uid === 'local' && stroke.userId === 'local') {
-          shouldDraw = true;
+      // Allow drawing if stroke.userId matches targetId
+      // OR if targetId is 'local' and stroke.userId is myId (since local layer handles both)
+      let shouldDraw = stroke.userId === targetId;
+      
+      if (targetId === 'local') {
+          if (stroke.userId === myId || stroke.userId === 'local') {
+              shouldDraw = true;
+          }
       }
       
       if (!shouldDraw) return;

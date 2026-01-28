@@ -64,6 +64,25 @@ export interface UpdateProfileResponse {
     }
 }
 
+export interface ChangePasswordData {
+    password: string
+}
+
+export interface ChangePasswordResponse {
+    success: boolean
+    message: string
+}
+
+export interface ResetPasswordData {
+    email: string
+    phone: string
+}
+
+export interface ResetPasswordResponse {
+    success: boolean
+    message: string
+}
+
 export interface CreateRoomData {
     password?: string
     maxUsers?: number

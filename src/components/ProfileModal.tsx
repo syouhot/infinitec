@@ -135,7 +135,7 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
 
           <button 
             type="submit" 
-            className="profile-submit-button"
+            className="register-submit-button"
             disabled={loading}
           >
             {loading ? '更新中...' : '确定'}

@@ -4,14 +4,16 @@ import { CloseOutlined } from '@ant-design/icons'
 import '../styles/RegisterModal.css'
 import { loginUser } from '../services/userService'
 import { useAuth } from '../contexts/AuthContext'
+import { hashPassword } from '../utils/crypto'
 
 interface LoginModalProps {
   isOpen: boolean
   onClose: () => void
   onSwitchToRegister: () => void
+  onSwitchToForgotPassword: () => void
 }
 
-function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalProps) {
+function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwitchToForgotPassword }: LoginModalProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -53,7 +55,7 @@ function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalProps) {
     try {
       const result = await loginUser({
         email: formData.email,
-        password: formData.password
+        password: hashPassword(formData.password)
       })
 
       login(result.token, result.user)
@@ -103,12 +105,27 @@ function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalProps) {
           <button className="register-submit-button" onClick={handleLogin}>
             登 录
           </button>
-          <p className="switch-auth-text">
-            还没有账号？
-            <span className="switch-auth-link" onClick={onSwitchToRegister}>
-              立即注册
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <p className="switch-auth-text">
+              还没有账号？
+              <span className="switch-auth-link" onClick={onSwitchToRegister}>
+                立即注册
+              </span>
+            </p>
+            <span
+              onClick={onSwitchToForgotPassword}
+              style={{
+                color: 'rgba(255, 255, 255, 0.6)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                transition: 'color 0.3s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'}
+            >
+              忘记密码？
             </span>
-          </p>
+          </div>
         </div>
       </div>
     </div>

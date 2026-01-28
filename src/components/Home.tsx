@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { message, Dropdown } from 'antd'
 import { type MenuProps } from 'antd'
-import { UserOutlined, LogoutOutlined, DownOutlined } from '@ant-design/icons'
+import { UserOutlined, LogoutOutlined, DownOutlined, KeyOutlined } from '@ant-design/icons'
 import '../styles/Home.css'
 import RegisterModal from './RegisterModal'
 import LoginModal from './LoginModal'
 import RoomModal from './RoomModal'
 import ProfileModal from './ProfileModal'
+import ForgotPasswordModal from './ForgotPasswordModal'
+import ChangePasswordModal from './ChangePasswordModal'
 import { useAuth } from '../contexts/AuthContext'
 import { useAppStore } from "../store"
 import { websocketService } from '../services/websocketService'
@@ -22,6 +24,8 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showRoomModal, setShowRoomModal] = useState(false)
   const [showProfileModal, setShowProfileModal] = useState(false)
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false)
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const { user, isAuthenticated, logout, login } = useAuth()
   const { setRoomId, setIsRoomOwner } = useAppStore()
 
@@ -31,6 +35,12 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
       label: '个人信息',
       icon: <UserOutlined />,
       onClick: () => setShowProfileModal(true),
+    },
+    {
+      key: 'changePassword',
+      label: '修改密码',
+      icon: <KeyOutlined />,
+      onClick: () => setShowChangePasswordModal(true),
     },
     {
       key: 'logout',
@@ -51,6 +61,20 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
     setShowLoginModal(false)
     setTimeout(() => {
       setShowRegisterModal(true)
+    }, 300)
+  }
+
+  const handleSwitchToForgotPassword = () => {
+    setShowLoginModal(false)
+    setTimeout(() => {
+      setShowForgotPasswordModal(true)
+    }, 300)
+  }
+
+  const handleForgotPasswordToLogin = () => {
+    setShowForgotPasswordModal(false)
+    setTimeout(() => {
+      setShowLoginModal(true)
     }, 300)
   }
 
@@ -239,6 +263,7 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
         isOpen={showLoginModal}
         onClose={handleCloseLoginModal}
         onSwitchToRegister={handleSwitchToRegister}
+        onSwitchToForgotPassword={handleSwitchToForgotPassword}
       />
       <RoomModal
         isOpen={showRoomModal}
@@ -251,6 +276,15 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
         onClose={() => setShowProfileModal(false)}
         user={user}
         onUpdate={login}
+      />
+      <ForgotPasswordModal
+        isOpen={showForgotPasswordModal}
+        onClose={() => setShowForgotPasswordModal(false)}
+        onSwitchToLogin={handleForgotPasswordToLogin}
+      />
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
       />
     </>
   )

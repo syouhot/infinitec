@@ -4,6 +4,7 @@ import { CloseOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import '../styles/RegisterModal.css'
 import { registerUser } from '../services/userService'
 import { useAuth } from '../contexts/AuthContext'
+import { hashPassword } from '../utils/crypto'
 
 interface RegisterModalProps {
   isOpen: boolean
@@ -53,7 +54,7 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
   }
 
   const handleRegister = async () => {
-    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword || !formData.phone) {
       message.warning('请填写所有必填字段')
       return
     }
@@ -62,8 +63,12 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
       message.warning('两次输入的密码不一致')
       return
     }
+    if (formData.password.length < 8) {
+      message.warning('密码长度不能小于8位')
+      return
+    }
 
-    if (formData.phone && formData.phone.length !== 11) {
+    if (formData.phone.length !== 11) {
       message.warning('请输入正确的手机号')
       return
     }
@@ -75,7 +80,7 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
         name: formData.username,
         phone: formData.phone || undefined,
         email: formData.email,
-        password: formData.password
+        password: hashPassword(formData.password)
       })
 
       setIsSuccess(true)

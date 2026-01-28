@@ -24,7 +24,7 @@ export async function apiFetch<T = any>(
     headers: {
       ...apiConfig.headers,
       ...headers,
-      ...(token ? { token } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   }
 
