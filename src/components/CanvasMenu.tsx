@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { message } from 'antd'
-import { LuSlack, LuCopy } from "react-icons/lu";
+import { LuSlack, LuCopy, LuMic, LuMicOff } from "react-icons/lu";
 import { IoWarningOutline } from "react-icons/io5";
 import { FaLocationArrow } from "react-icons/fa6";
 import '../styles/CanvasMenu.css'
@@ -12,6 +12,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useAppStore, useCanvasStore } from '../store'
 import { leaveRoom, deleteRoom } from '../services/roomService'
 import { websocketService } from '../services/websocketService'
+import { audioService } from '../services/audioService'
 import RoomDeletedModal from './RoomDeletedModal'
 function CanvasIndex({ onBack }: { onBack: () => void }) {
   const [showBackButton, setShowBackButton] = useState(false)
@@ -19,7 +20,36 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showRoomDeletedModal, setShowRoomDeletedModal] = useState(false)
   const [isClosing, setIsClosing] = useState(false)
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false)
   const { roomId, setRoomId, isRoomOwner, setIsRoomOwner } = useAppStore()
+
+  useEffect(() => {
+    if (roomId) {
+      audioService.initialize()
+      audioService.joinAudioRoom()
+    }
+    return () => {
+      audioService.stopAudio()
+      setIsAudioEnabled(false)
+    }
+  }, [roomId])
+
+  const toggleAudio = async () => {
+    try {
+      if (isAudioEnabled) {
+        audioService.disableMicrophone()
+        setIsAudioEnabled(false)
+        message.info('麦克风已关闭，仍可收听他人声音')
+      } else {
+        await audioService.enableMicrophone()
+        setIsAudioEnabled(true)
+        message.success('麦克风已开启')
+      }
+    } catch (error) {
+      message.error('无法访问麦克风')
+      console.error(error)
+    }
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -116,12 +146,27 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
             <LuSlack size={30} />
           </div>
           <div className={`menu-dropdown ${isMenuOpen ? 'open' : ''}`}>
-            <ThemeControls 
-              style={{ minWidth: '240px' }} 
+            <ThemeControls
+              style={{ minWidth: '240px' }}
               onThemeChange={(theme) => useCanvasStore.getState().setTheme(theme)}
             />
             {roomId && (
               <div className="room-info">
+                <div className="audio-button-container" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={toggleAudio}
+                    className="location-button"
+                    title={isAudioEnabled ? "关闭麦克风" : "开启音频通话"}
+                    style={{
+                      backgroundColor: isAudioEnabled ? 'rgba(76, 175, 80, 0.2)' : undefined,
+                      borderColor: isAudioEnabled ? '#4CAF50' : undefined,
+                      color: isAudioEnabled ? '#4CAF50' : undefined
+                    }}
+                  >
+                    {isAudioEnabled ? <LuMic size={12} /> : <LuMicOff size={12} />}
+                    {isAudioEnabled ? '关闭音频' : '开启音频'}
+                  </button>
+                </div>
                 <span className="room-label">房间ID</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="room-id">{roomId}</span>
@@ -140,6 +185,7 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
                 >
                   <FaLocationArrow size={12} /> 发送坐标
                 </button>
+
                 <DndProvider backend={HTML5Backend}>
                   <LayerManager isOwner={isRoomOwner} />
                 </DndProvider>

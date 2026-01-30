@@ -15,6 +15,7 @@ type LocationCallback = (data: { userId: string, userName: string, x: number, y:
 type SnapshotCallback = (data: string, layerOrder?: string[]) => void
 type LayerOrderCallback = (data: { layerOrder: string[], userId: string, userName?: string }) => void
 type RoomUsersCallback = (users: { userId: string, userName: string }[]) => void
+type AudioSignalCallback = (data: { userId: string, signal: any }) => void
 
 class WebSocketService {
   private ws: WebSocket | null = null
@@ -31,6 +32,7 @@ class WebSocketService {
   private onSnapshotCallback: SnapshotCallback | null = null
   private onLayerOrderCallback: LayerOrderCallback | null = null
   private onRoomUsersCallback: RoomUsersCallback | null = null
+  private onAudioSignalCallback: AudioSignalCallback | null = null
 
   setRoomDeletedCallback(callback: RoomDeletedCallback): void {
     this.onRoomDeletedCallback = callback
@@ -56,6 +58,11 @@ class WebSocketService {
     this.onRoomUsersCallback = callback
   }
 
+  setAudioSignalCallback(callback: AudioSignalCallback): void {
+    this.onAudioSignalCallback = callback
+  }
+
+
   sendDrawEvent(data: any): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.userId) {
       const message: WebSocketMessage = {
@@ -80,6 +87,22 @@ class WebSocketService {
           userName, 
           x, 
           y 
+        }
+      }
+      this.ws.send(JSON.stringify(message))
+    }
+  }
+
+  sendAudioSignal(targetUserId: string | null, signal: any): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.roomId && this.userId) {
+      const message: WebSocketMessage = {
+        type: 'draw_event',
+        roomId: this.roomId,
+        userId: this.userId,
+        data: {
+          dataType: 'audio_signal',
+          targetUserId,
+          signal
         }
       }
       this.ws.send(JSON.stringify(message))
@@ -170,6 +193,17 @@ class WebSocketService {
                     x: message.data.x,
                     y: message.data.y
                   })
+                }
+              } else if (message.data && message.data.dataType === 'audio_signal') {
+                // Check if this signal is for me or broadcast
+                const targetUserId = message.data.targetUserId;
+                if (!targetUserId || targetUserId === this.userId) {
+                  if (this.onAudioSignalCallback) {
+                    this.onAudioSignalCallback({
+                      userId: message.userId || '',
+                      signal: message.data.signal
+                    })
+                  }
                 }
               } else {
                 // Standard draw event
