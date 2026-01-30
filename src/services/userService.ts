@@ -87,3 +87,16 @@ export async function updateUser(data: UpdateProfileData): Promise<UpdateProfile
     throw new Error(error instanceof Error ? error.message : '更新用户信息失败，请稍后重试')
   }
 }
+
+export async function submitFeedback(content: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const result = await api.post<{ success: boolean; message: string }>('/api/feedback', { content })
+    if (!result.success) {
+      throw new Error(result.message || '提交失败')
+    }
+    return result
+  } catch (error) {
+    console.error('提交反馈失败:', error)
+    throw new Error(error instanceof Error ? error.message : '提交反馈失败，请稍后重试')
+  }
+}

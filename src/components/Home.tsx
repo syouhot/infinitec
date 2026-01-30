@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { message, Dropdown } from 'antd'
 import { type MenuProps } from 'antd'
 import { UserOutlined, LogoutOutlined, DownOutlined, KeyOutlined } from '@ant-design/icons'
+import { LuMail, LuMailOpen } from "react-icons/lu"
 import '../styles/Home.css'
 import RegisterModal from './RegisterModal'
 import LoginModal from './LoginModal'
@@ -9,6 +10,7 @@ import RoomModal from './RoomModal'
 import ProfileModal from './ProfileModal'
 import ForgotPasswordModal from './ForgotPasswordModal'
 import ChangePasswordModal from './ChangePasswordModal'
+import FeedbackModal from './FeedbackModal'
 import { useAuth } from '../contexts/AuthContext'
 import { useAppStore } from "../store"
 import { websocketService } from '../services/websocketService'
@@ -26,6 +28,8 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
   const [showProfileModal, setShowProfileModal] = useState(false)
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false)
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
+  const [isMailOpen, setIsMailOpen] = useState(false)
   const { user, isAuthenticated, logout, login } = useAuth()
   const { setRoomId, setIsRoomOwner } = useAppStore()
 
@@ -209,6 +213,16 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
       {!isHidden && (
         isAuthenticated ? (
           <div className="user-info">
+            <div 
+              className="feedback-icon-container"
+              onMouseEnter={() => setIsMailOpen(true)}
+              onMouseLeave={() => setIsMailOpen(false)}
+              onClick={() => setShowFeedbackModal(true)}
+              title="意见反馈"
+              style={{ cursor: 'pointer', marginRight: '15px', display: 'flex', alignItems: 'center', color: '#fff', transition: 'all 0.3s' }}
+            >
+              {isMailOpen ? <LuMailOpen size={20} /> : <LuMail size={20} />}
+            </div>
             <Dropdown 
               menu={{ items: userMenuItems }} 
               placement="bottomRight" 
@@ -285,6 +299,10 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
       <ChangePasswordModal
         isOpen={showChangePasswordModal}
         onClose={() => setShowChangePasswordModal(false)}
+      />
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
       />
     </>
   )
