@@ -7,6 +7,8 @@ interface AppState {
   setRoomId: (roomId: string | null) => void
   isRoomOwner: boolean
   setIsRoomOwner: (isOwner: boolean) => void
+  isScreenshotMode: boolean
+  setIsScreenshotMode: (mode: boolean) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -15,5 +17,7 @@ export const useAppStore = create<AppState>((set) => ({
   roomId: null,
   setRoomId: (roomId) => set({ roomId }),
   isRoomOwner: false,
-  setIsRoomOwner: (isOwner) => set({ isRoomOwner: isOwner })
+  setIsRoomOwner: (isOwner) => set({ isRoomOwner: isOwner }),
+  isScreenshotMode: false,
+  setIsScreenshotMode: (mode) => set({ isScreenshotMode: mode })
 }))

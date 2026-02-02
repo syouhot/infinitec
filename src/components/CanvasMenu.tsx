@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { message } from 'antd'
-import { LuSlack, LuCopy, LuMic, LuMicOff } from "react-icons/lu";
+import { LuSlack, LuCopy, LuMic, LuMicOff, LuCamera } from "react-icons/lu";
 import { IoWarningOutline } from "react-icons/io5";
 import { FaLocationArrow } from "react-icons/fa6";
 import '../styles/CanvasMenu.css'
@@ -22,7 +22,7 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
   const [isClosing, setIsClosing] = useState(false)
   const [isAudioEnabled, setIsAudioEnabled] = useState(false)
   const { roomId, setRoomId, isRoomOwner, setIsRoomOwner } = useAppStore()
-
+  const setIsScreenshotMode = useAppStore((state) => state.setIsScreenshotMode)
   useEffect(() => {
     if (roomId) {
       audioService.initialize()
@@ -191,6 +191,17 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
                 </DndProvider>
               </div>
             )}
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                setIsScreenshotMode(true);
+              }}
+              className="location-button"
+              style={{ marginTop: '8px' }}
+              title="截取当前视口"
+            >
+              <LuCamera size={16} /> 截屏
+            </button>
             <button className="back-button" onClick={handleExitRoom}>
               ← 退出
             </button>

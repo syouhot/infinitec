@@ -1,0 +1,16 @@
+.screenshot-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: opacity 0.1s ease-out;
+}
+
+.screenshot-flash.active {
+  opacity: 0.8;
+}

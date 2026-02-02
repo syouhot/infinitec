@@ -98,8 +98,8 @@ function Toolbar() {
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
-        accept="image/jpeg,image/png,image/jpg"
         style={{ display: 'none' }}
+        accept="image/*"
       />
     </div>
   )

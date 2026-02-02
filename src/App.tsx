@@ -5,6 +5,7 @@ import Toolbar from './components/Toolbar'
 import CanvasMain from './components/CanvasMain'
 import CanvasModel from './components/CanvasModel'
 import Eraser from './components/Eraser'
+import ScreenshotOverlay from './components/ScreenshotOverlay'
 import { useAppStore, useToolStore, useCanvasStore } from './store'
 import { DatabaseProvider } from './contexts/DatabaseContext'
 import { AuthProvider } from './contexts/AuthContext'
@@ -21,6 +22,7 @@ function App() {
   const currentLineDash = useCanvasStore((state) => state.currentLineDash)
   const eraserSize = useCanvasStore((state) => state.eraserSize)
   const currentArrowType = useCanvasStore((state) => state.currentArrowType)
+  const isScreenshotMode = useAppStore((state) => state.isScreenshotMode)
 
   const handleDoubleClick = () => {
     setIsDrawingMode(true)
@@ -48,10 +50,17 @@ function App() {
                 currentArrowType={currentArrowType}
                 eraserSize={eraserSize}
               />
-              <CanvasMenu onBack={handleExitDrawingMode} />
-              <Toolbar />
-              <CanvasModel />
-              <Eraser />
+              <div style={{ 
+                opacity: isScreenshotMode ? 0 : 1, 
+                transition: 'opacity 0.5s ease-out',
+                pointerEvents: isScreenshotMode ? 'none' : 'auto'
+              }}>
+                <CanvasMenu onBack={handleExitDrawingMode} />
+                <Toolbar />
+                <CanvasModel />
+                <Eraser />
+              </div>
+              <ScreenshotOverlay />
             </>
           )}
         </div>

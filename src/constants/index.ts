@@ -2,7 +2,7 @@ export const HEARTBEAT_INTERVAL = 10
 
 export const MAX_FAILED_HEARTBEATS = 3
 export const AUTO_SAVE_INTERVAL_MINUTES = 1
-
+export const THEME_BACKGROUND_COLOR = '#1a1a1a'
 export const colors = [
   '#ffffff',
   '#ff0000',
