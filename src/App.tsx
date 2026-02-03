@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import './App.css'
 import Home from './components/Home'
 import CanvasMenu from './components/CanvasMenu'
@@ -12,6 +13,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { websocketService } from './services/websocketService'
 
 function App() {
+  const canvasRef = useRef<any>(null)
   const isDrawingMode = useAppStore((state) => state.isDrawingMode)
   const setIsDrawingMode = useAppStore((state) => state.setIsDrawingMode)
   const setRoomId = useAppStore((state) => state.setRoomId)
@@ -43,6 +45,7 @@ function App() {
           {isDrawingMode && (
             <>
               <CanvasMain 
+                ref={canvasRef}
                 selectedTool={selectedTool} 
                 currentColor={currentColor}
                 currentLineWidth={currentLineWidth}
@@ -56,7 +59,10 @@ function App() {
                 pointerEvents: isScreenshotMode ? 'none' : 'auto'
               }}>
                 <CanvasMenu onBack={handleExitDrawingMode} />
-                <Toolbar />
+                <Toolbar 
+                  onUndo={() => canvasRef.current?.undo()} 
+                  onRedo={() => canvasRef.current?.redo()} 
+                />
                 <CanvasModel />
                 <Eraser />
               </div>

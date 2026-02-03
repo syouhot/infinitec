@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { FaCheck, FaXmark, FaArrowsUpDownLeftRight } from 'react-icons/fa6';
-import '../styles/RectangleEditor.css'; // Reusing RectangleEditor styles for handles and toolbar
+import '../styles/RectangleEditor.css'; // 复用 RectangleEditor 的样式用于手柄和工具栏
 
 interface Rect {
   x: number;
@@ -40,7 +40,7 @@ const ImageEditor = forwardRef<ImageEditorRef, ImageEditorProps>(({
   const activeHandleRef = useRef<string | null>(null);
   const aspectRatioRef = useRef<number>(initialRect.width / initialRect.height);
 
-  // Normalize rect to always have positive width/height
+  // 规范化矩形，始终保持宽高为正值
   const normalizedRect = {
     x: rect.width < 0 ? rect.x + rect.width : rect.x,
     y: rect.height < 0 ? rect.y + rect.height : rect.y,
@@ -74,7 +74,7 @@ const ImageEditor = forwardRef<ImageEditorRef, ImageEditorProps>(({
         y: startRect.y + dy
       });
     } else {
-      // Resize logic
+      // 调整大小逻辑
       let newX = startRect.x;
       let newY = startRect.y;
       let newW = startRect.width;
@@ -97,7 +97,7 @@ const ImageEditor = forwardRef<ImageEditorRef, ImageEditorProps>(({
         newH = startRect.height + dy;
       }
 
-      // Proportional scaling for corners
+      // 角落调整时保持比例
       if (isCorner) {
          const absNewW = Math.abs(newW);
          const absNewH = Math.abs(newH);
@@ -105,16 +105,16 @@ const ImageEditor = forwardRef<ImageEditorRef, ImageEditorProps>(({
          const wFromH = absNewH * aspectRatioRef.current;
          const hFromW = absNewW / aspectRatioRef.current;
          
-         // Use the dimension that implies a larger size (dominant axis)
+         // 使用意味着更大尺寸的维度（主轴）
          if (wFromH > absNewW) {
-             // Drive by Height
+             // 由高度驱动
              newW = wFromH * (newW < 0 ? -1 : 1); 
          } else {
-             // Drive by Width
+             // 由宽度驱动
              newH = hFromW * (newH < 0 ? -1 : 1);
          }
          
-         // Recalculate position based on anchored edges
+         // 根据锚定边缘重新计算位置
          if (activeHandleRef.current.includes('w')) {
              newX = startRect.x + (startRect.width - newW);
          }
@@ -139,7 +139,7 @@ const ImageEditor = forwardRef<ImageEditorRef, ImageEditorProps>(({
     onConfirm(normalizedRect);
   };
 
-  // Inverse scaling for UI elements to keep constant size
+  // 反向缩放 UI 元素以保持固定大小
   const uiStyle = {
     transform: `scale(${1 / zoomScale})`,
     transformOrigin: 'center bottom'
@@ -156,20 +156,20 @@ const ImageEditor = forwardRef<ImageEditorRef, ImageEditorProps>(({
       }}
       ref={containerRef}
     >
-      {/* Image Preview */}
+      {/* 图片预览 */}
       <img 
         src={image.src}
         alt="Editing"
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'fill', // or contain, but fill allows stretching if user wants non-proportional via side handles
+          objectFit: 'fill', // 或者 contain，但 fill 允许用户通过侧边手柄进行非比例拉伸
           pointerEvents: 'none',
           userSelect: 'none'
         }}
       />
 
-      {/* Resize Handles */}
+      {/* 调整大小手柄 */}
       {['nw', 'ne', 'sw', 'se', 'n', 's', 'w', 'e'].map(dir => (
         <div
           key={dir}
@@ -181,7 +181,7 @@ const ImageEditor = forwardRef<ImageEditorRef, ImageEditorProps>(({
         />
       ))}
 
-      {/* Toolbar */}
+      {/* 工具栏 */}
       <div className="rectangle-toolbar" style={uiStyle}>
         <button className="toolbar-btn primary" onClick={handleConfirm} title="确定">
           <FaCheck />
@@ -193,7 +193,7 @@ const ImageEditor = forwardRef<ImageEditorRef, ImageEditorProps>(({
         
         <div className="toolbar-separator" />
         
-        {/* Move Handle in Toolbar */}
+        {/* 工具栏中的移动手柄 */}
         <button 
           className="toolbar-btn move-btn"
           onMouseDown={(e) => handleMouseDown(e, 'move')}

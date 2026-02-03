@@ -16,12 +16,14 @@ import {
   FaTextHeight
 } from 'react-icons/fa6'
 import { message } from 'antd'
+import { useTranslation } from 'react-i18next'
 import { useToolStore, useCanvasStore } from '../store'
 import { buildApiUrl } from '../services/apiConfig'
 import '../styles/CanvasModel.css'
 import { colors, diyColors, FONT_SIZES } from '../constants'
 
 function CanvasModel() {
+  const { t } = useTranslation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [selectedBottomIndex, setSelectedBottomIndex] = useState<number | null>(null)
@@ -68,21 +70,20 @@ function CanvasModel() {
         img.src = data.url
       } catch (error) {
         console.error('Image upload failed:', error)
-        message.error('图片上传失败，请重试')
+        message.error(t('toolbar.uploadFailed'))
       }
     }
     e.target.value = ''
   }
 
   const tools = [
-    { id: 'pencil', icon: FaPencil, label: '画笔' },
-    { id: 'rectangle', icon: FaRegSquare, label: '矩形' },
-    { id: 'circle', icon: FaRegCircle, label: '圆形' },
-    { id: 'line', icon: FaMinus, label: '直线' },
-    { id: 'arrow', icon: FaArrowRight, label: '箭头' },
-    { id: 'polygon', icon: FaDrawPolygon, label: '多边形' },
-    { id: 'text', icon: FaFont, label: '文本' },
-    { id: 'image', icon: FaImage, label: '图片' }
+    { id: 'pencil', icon: FaPencil, label: t('toolbar.pencil') },
+    { id: 'rectangle', icon: FaRegSquare, label: t('toolbar.rectangle') },
+    { id: 'circle', icon: FaRegCircle, label: t('toolbar.circle') },
+    { id: 'line', icon: FaMinus, label: t('toolbar.line') },
+    { id: 'arrow', icon: FaArrowRight, label: t('toolbar.arrow') },
+    { id: 'polygon', icon: FaDrawPolygon, label: t('toolbar.polygon') },
+    { id: 'text', icon: FaFont, label: t('toolbar.text') },
   ]
 
   const selectedToolIcon = tools.find(tool => tool.id === selectedTool)?.icon || FaPencil
@@ -94,10 +95,10 @@ function CanvasModel() {
   }
 
   const lineStyles = [
-    { id: 'solid', dash: [], label: '实线' },
-    { id: 'dashed1', dash: [8, 8], label: '虚线1' },
-    { id: 'dashed2', dash: [20, 20], label: '虚线2' },
-    { id: 'dashed3', dash: [2, 6], label: '虚线3' }
+    { id: 'solid', dash: [], label: t('canvasModel.solid') },
+    { id: 'dashed1', dash: [8, 8], label: t('canvasModel.dashed1') },
+    { id: 'dashed2', dash: [20, 20], label: t('canvasModel.dashed2') },
+    { id: 'dashed3', dash: [2, 6], label: t('canvasModel.dashed3') }
   ]
 
   const topColors = colors
@@ -151,7 +152,7 @@ function CanvasModel() {
       <div
         className={`model-display ${selectedTool !== 'pencil' ? 'switch-to-pencil' : ''}`}
         onClick={handleModelDisplayClick}
-        title={selectedTool !== 'pencil' ? "点击切换回画笔" : "画笔设置"}
+        title={selectedTool !== 'pencil' ? t('canvasModel.switchToPencil') : t('canvasModel.pencilSettings')}
       >
         {React.createElement(selectedToolIcon, { size: 24 })}
       </div>
@@ -159,7 +160,7 @@ function CanvasModel() {
         <div className="menu-section">
           <div className="menu-header">
             <FaPalette size={16} />
-            <span>颜色</span>
+            <span>{t('canvasModel.color')}</span>
           </div>
           <div className="color-grid color-grid-top">
             {topColors.map((color, index) => (
@@ -198,7 +199,7 @@ function CanvasModel() {
           <div className="menu-section">
             <div className="menu-header">
               <FaMinus size={16} />
-              <span>样式</span>
+              <span>{t('canvasModel.style')}</span>
             </div>
             <div className="style-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
               {lineStyles.map((style) => {
@@ -242,14 +243,14 @@ function CanvasModel() {
           <div className="menu-section">
             <div className="menu-header">
               <FaArrowRight size={16} />
-              <span>样式</span>
+              <span>{t('canvasModel.style')}</span>
             </div>
             <div className="style-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
               {[
-                { id: 'standard', type: 'standard', label: '标准' },
-                { id: 'double', type: 'double', label: '双向' },
-                { id: 'solid', type: 'solid', label: '实心' },
-                { id: 'solid-double', type: 'solid-double', label: '实心双向' },
+                { id: 'standard', type: 'standard', label: t('canvasModel.standard') },
+                { id: 'double', type: 'double', label: t('canvasModel.double') },
+                { id: 'solid', type: 'solid', label: t('canvasModel.solid') },
+                { id: 'solid-double', type: 'solid-double', label: t('canvasModel.solidDouble') },
               ].map((style) => {
                 const isSelected = currentArrowType === style.type;
                 return (
@@ -311,7 +312,7 @@ function CanvasModel() {
           <div className="menu-section">
             <div className="menu-header">
               <FaTextHeight size={16} />
-              <span>字号</span>
+              <span>{t('canvasModel.fontSize')}</span>
             </div>
             <div className="width-slider-container">
               <select
@@ -336,7 +337,7 @@ function CanvasModel() {
           <div className="menu-section">
             <div className="menu-header">
               <FaLineSize size={16} />
-              <span>粗细</span>
+              <span>{t('canvasModel.stroke')}</span>
             </div>
             <div className="width-slider-container">
               <input

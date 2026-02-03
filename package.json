@@ -14,10 +14,12 @@
     "antd": "^6.2.0",
     "bcryptjs": "^3.0.3",
     "crypto-js": "^4.2.0",
+    "i18next": "^25.8.0",
     "react": "^19.2.0",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.2.0",
+    "react-i18next": "^16.5.4",
     "react-icons": "^5.5.0",
     "zustand": "^5.0.10"
   },

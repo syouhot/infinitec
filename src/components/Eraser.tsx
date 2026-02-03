@@ -3,8 +3,10 @@ import { FaEraser } from 'react-icons/fa6'
 import { useToolStore, useCanvasStore } from '../store'
 import { CANVAS_CONFIG } from '../constants'
 import '../styles/Eraser.css'
+import { useTranslation } from 'react-i18next'
 
 function Eraser() {
+  const { t } = useTranslation()  
   const selectedTool = useToolStore((state) => state.selectedTool)
   const setSelectedTool = useToolStore((state) => state.setSelectedTool)
   const eraserSize = useCanvasStore((state) => state.eraserSize)
@@ -35,7 +37,7 @@ function Eraser() {
       <div className={`eraser-menu ${isMenuOpen ? 'open' : ''}`}>
         <div className="menu-section">
           <div className="menu-header">
-            <span>大小</span>
+            <span>{t('eraser.size')}</span>
             <span className="size-value">{eraserSize}px</span>
           </div>
           <div className="slider-container">

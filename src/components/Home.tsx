@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { message, Dropdown } from 'antd'
 import { type MenuProps } from 'antd'
-import { UserOutlined, LogoutOutlined, DownOutlined, KeyOutlined } from '@ant-design/icons'
+import { UserOutlined, LogoutOutlined, DownOutlined, KeyOutlined, GlobalOutlined } from '@ant-design/icons'
 import { LuMail, LuMailOpen } from "react-icons/lu"
+import { useTranslation } from 'react-i18next'
 import '../styles/Home.css'
 import RegisterModal from './RegisterModal'
 import LoginModal from './LoginModal'
@@ -14,6 +15,7 @@ import FeedbackModal from './FeedbackModal'
 import { useAuth } from '../contexts/AuthContext'
 import { useAppStore } from "../store"
 import { websocketService } from '../services/websocketService'
+import i18n from '../i18n/config'
 
 interface HomeProps {
   onDoubleClick: () => void
@@ -21,6 +23,7 @@ interface HomeProps {
 }
 
 function Home({ onDoubleClick, isHidden = false }: HomeProps) {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
@@ -32,23 +35,34 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
   const [isMailOpen, setIsMailOpen] = useState(false)
   const { user, isAuthenticated, logout, login } = useAuth()
   const { setRoomId, setIsRoomOwner } = useAppStore()
-
+  const languageMenuItems: MenuProps['items'] = [
+    {
+      key: 'en',
+      label: t('menu.language.en'),
+      onClick: () => i18n.changeLanguage('en'),
+    },
+    {
+      key: 'zh',
+      label: t('menu.language.zh'),
+      onClick: () => i18n.changeLanguage('zh'),
+    },
+  ]
   const userMenuItems: MenuProps['items'] = [
     {
       key: 'profile',
-      label: '个人信息',
+      label: t('home.profile'),
       icon: <UserOutlined />,
       onClick: () => setShowProfileModal(true),
     },
     {
       key: 'changePassword',
-      label: '修改密码',
+      label: t('home.changePassword'),
       icon: <KeyOutlined />,
       onClick: () => setShowChangePasswordModal(true),
     },
     {
       key: 'logout',
-      label: '退出登录',
+      label: t('home.logout'),
       icon: <LogoutOutlined />,
       onClick: logout,
     },
@@ -211,46 +225,61 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
     <>
       <canvas ref={canvasRef} className="starfield" />
       {!isHidden && (
-        isAuthenticated ? (
-          <div className="user-info">
-            <div 
-              className="feedback-icon-container"
-              onMouseEnter={() => setIsMailOpen(true)}
-              onMouseLeave={() => setIsMailOpen(false)}
-              onClick={() => setShowFeedbackModal(true)}
-              title="意见反馈"
-              style={{ cursor: 'pointer', marginRight: '15px', display: 'flex', alignItems: 'center', color: '#fff', transition: 'all 0.3s' }}
-            >
-              {isMailOpen ? <LuMailOpen size={20} /> : <LuMail size={20} />}
+        <>
+          <Dropdown 
+            menu={{ items: languageMenuItems }} 
+            placement="bottomLeft" 
+            arrow 
+            className="custom-dropdown-menu"
+          >
+            <div className="language-switcher">
+              <GlobalOutlined />
+              <span className="language-text">{i18n.language === 'en' ? 'EN' : '中文'}</span>
+              <DownOutlined className="dropdown-arrow" />
             </div>
-            <Dropdown 
-              menu={{ items: userMenuItems }} 
-              placement="bottomRight" 
-              arrow 
-              overlayClassName="custom-dropdown-menu"
-            >
-              <div className="user-dropdown-trigger">
-                <span className="user-name">{user?.name}</span>
-                <DownOutlined className="dropdown-arrow" />
+          </Dropdown>
+
+          {isAuthenticated ? (
+            <div className="user-info">
+              <div 
+                className="feedback-icon-container"
+                onMouseEnter={() => setIsMailOpen(true)}
+                onMouseLeave={() => setIsMailOpen(false)}
+                onClick={() => setShowFeedbackModal(true)}
+                title={t('home.feedback')}
+                style={{ cursor: 'pointer', marginRight: '15px', display: 'flex', alignItems: 'center', color: '#fff', transition: 'all 0.3s' }}
+              >
+                {isMailOpen ? <LuMailOpen size={20} /> : <LuMail size={20} />}
               </div>
-            </Dropdown>
-          </div>
-        ) : (
-          <div className="auth-buttons">
-            <span 
-              className="auth-link register-link"
-              onClick={() => setShowRegisterModal(true)}
-            >
-              注册
-            </span>
-            <span 
-              className="auth-link login-link"
-              onClick={() => setShowLoginModal(true)}
-            >
-              登录
-            </span>
-          </div>
-        )
+              <Dropdown 
+                menu={{ items: userMenuItems }} 
+                placement="bottomRight" 
+                arrow 
+                className="custom-dropdown-menu"
+              >
+                <div className="user-dropdown-trigger">
+                  <span className="user-name">{user?.name}</span>
+                  <DownOutlined className="dropdown-arrow" />
+                </div>
+              </Dropdown>
+            </div>
+          ) : (
+            <div className="auth-buttons">
+              <span 
+                className="auth-link register-link"
+                onClick={() => setShowRegisterModal(true)}
+              >
+                {t('home.register')}
+              </span>
+              <span 
+                className="auth-link login-link"
+                onClick={() => setShowLoginModal(true)}
+              >
+                {t('home.login')}
+              </span>
+            </div>
+          )}
+        </>
       )}
       <div className={`content ${isHidden ? 'hidden' : ''}`}>
         <h1 className="title animate-fade-in">
@@ -259,12 +288,12 @@ function Home({ onDoubleClick, isHidden = false }: HomeProps) {
         <div className="subtitle-wrapper animate-fade-in">
           <p className="plain-subtitle">
             <span className="double-click-icon">⚡</span>
-            双击开始绘画模式
+            {t('home.doubleClickToStart')}
           </p>
           <div className="divider"></div>
         </div>
         <p className="subtitle animate-fade-in" onClick={handleMultiplayerClick}>
-          多人绘画
+          {t('home.multiplayer')}
         </p>
       </div>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { message } from 'antd'
 import { CloseOutlined, CheckCircleOutlined } from '@ant-design/icons'
+import { useTranslation } from 'react-i18next'
 import '../styles/RegisterModal.css'
 import { resetPassword } from '../services/userService'
 
@@ -11,6 +12,7 @@ interface ForgotPasswordModalProps {
 }
 
 function ForgotPasswordModal({ isOpen, onClose, onSwitchToLogin }: ForgotPasswordModalProps) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     email: '',
     phone: ''
@@ -47,12 +49,12 @@ function ForgotPasswordModal({ isOpen, onClose, onSwitchToLogin }: ForgotPasswor
 
   const handleSubmit = async () => {
     if (!formData.email || !formData.phone) {
-      message.warning('请填写邮箱和手机号')
+      message.warning(t('forgotPassword.fillAll'))
       return
     }
 
     if (formData.phone.length !== 11) {
-      message.warning('请输入正确的手机号')
+      message.warning(t('forgotPassword.invalidPhone'))
       return
     }
 
@@ -66,7 +68,7 @@ function ForgotPasswordModal({ isOpen, onClose, onSwitchToLogin }: ForgotPasswor
       setIsSuccess(true)
     } catch (error) {
       console.error('重置密码错误:', error)
-      message.error(error instanceof Error ? error.message : '重置密码失败，请稍后重试')
+      message.error(error instanceof Error ? error.message : t('forgotPassword.error'))
     } finally {
       setLoading(false)
     }
@@ -86,38 +88,38 @@ function ForgotPasswordModal({ isOpen, onClose, onSwitchToLogin }: ForgotPasswor
             <div className="success-icon-wrapper">
               <CheckCircleOutlined />
             </div>
-            <h2 className="register-modal-title">重置成功</h2>
+            <h2 className="register-modal-title">{t('forgotPassword.successTitle')}</h2>
             <div className="success-message">
-              <p>新密码已发送至：<span className="highlight-email">{formData.email}</span></p>
-              <p>请查收邮件并使用新密码登录</p>
+              <p>{t('forgotPassword.successMessage1')}<span className="highlight-email">{formData.email}</span></p>
+              <p>{t('forgotPassword.successMessage2')}</p>
             </div>
             <button className="register-submit-button" onClick={() => { handleClose(); onSwitchToLogin(); }}>
-              返回登录
+              {t('forgotPassword.backToLogin')}
             </button>
           </div>
         ) : (
           <>
-            <h2 className="register-modal-title">重置密码</h2>
+            <h2 className="register-modal-title">{t('forgotPassword.title')}</h2>
             <div className="register-form">
               <div className="form-group">
-                <label>邮箱</label>
+                <label>{t('forgotPassword.email')}</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="请输入注册邮箱"
+                  placeholder={t('forgotPassword.emailPlaceholder')}
                   disabled={loading}
                 />
               </div>
               <div className="form-group">
-                <label>手机号</label>
+                <label>{t('forgotPassword.phone')}</label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  placeholder="请输入注册手机号"
+                  placeholder={t('forgotPassword.phonePlaceholder')}
                   maxLength={11}
                   disabled={loading}
                 />
@@ -128,12 +130,12 @@ function ForgotPasswordModal({ isOpen, onClose, onSwitchToLogin }: ForgotPasswor
                 onClick={handleSubmit} 
                 disabled={loading}
               >
-                {loading ? '处理中...' : '重 置 密 码'}
+                {loading ? t('forgotPassword.submitting') : t('forgotPassword.submit')}
               </button>
               
               <p className="switch-auth-text">
                 <span className="switch-auth-link" onClick={onSwitchToLogin}>
-                  返回登录
+                  {t('forgotPassword.backToLogin')}
                 </span>
               </p>
             </div>

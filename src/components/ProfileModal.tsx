@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { UserOutlined, PhoneOutlined, MailOutlined, CloseOutlined } from '@ant-design/icons'
 import { message } from 'antd'
+import { useTranslation } from 'react-i18next'
 import { updateUser } from '../services/userService'
 import '../styles/ProfileModal.css'
 
@@ -19,6 +20,7 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ isOpen, onClose, user, onUpdate }: ProfileModalProps) {
+  const { t } = useTranslation()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
@@ -42,7 +44,7 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
-      message.error('用户名不能为空')
+      message.error(t('profile.usernameRequired'))
       return
     }
 
@@ -50,12 +52,12 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
     try {
       const response = await updateUser({ name, phone: phone || undefined })
       if (response.success) {
-        message.success('更新成功')
+        message.success(t('profile.updateSuccess'))
         onUpdate(response.token, response.user)
         handleClose()
       }
     } catch (error: any) {
-      message.error(error.message || '更新失败')
+      message.error(error.message || t('profile.updateError'))
     } finally {
       setLoading(false)
     }
@@ -86,11 +88,11 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
           <CloseOutlined />
         </div>
         
-        <h2 className="profile-modal-title">个人信息</h2>
+        <h2 className="profile-modal-title">{t('profile.title')}</h2>
         
         <form className="profile-form" onSubmit={handleSubmit}>
           <div className="profile-input-group">
-            <label>用户名</label>
+            <label>{t('profile.username')}</label>
             <div className="profile-input-wrapper">
               <UserOutlined className="profile-input-icon" />
               <input
@@ -98,14 +100,14 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
                 className="profile-input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="请输入用户名"
+                placeholder={t('profile.usernamePlaceholder')}
                 disabled={loading}
               />
             </div>
           </div>
 
           <div className="profile-input-group">
-            <label>手机号</label>
+            <label>{t('profile.phone')}</label>
             <div className="profile-input-wrapper">
               <PhoneOutlined className="profile-input-icon" />
               <input
@@ -113,14 +115,14 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
                 className="profile-input"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="请输入手机号"
+                placeholder={t('profile.phonePlaceholder')}
                 disabled={loading}
               />
             </div>
           </div>
 
           <div className="profile-input-group">
-            <label>邮箱</label>
+            <label>{t('profile.email')}</label>
             <div className="profile-input-wrapper">
               <MailOutlined className="profile-input-icon" />
               <input
@@ -138,7 +140,7 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }: Profil
             className="register-submit-button"
             disabled={loading}
           >
-            {loading ? '更新中...' : '确定'}
+            {loading ? t('profile.updating') : t('profile.update')}
           </button>
         </form>
       </div>

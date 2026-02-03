@@ -10,38 +10,27 @@ const ScreenshotOverlay: React.FC = () => {
   const theme = useCanvasStore((state) => state.theme)
   useEffect(() => {
     if (isScreenshotMode) {
-      // 1. Wait for UI to fade out (0.5s)
+      // 1. 等待 UI 淡出 (0.5秒)
       const captureTimer = setTimeout(async () => {
-        // 2. Trigger Flash
+        // 2. 触发闪光效果
         setFlash(true)
         
-        // 3. Capture Screenshot
+        // 3. 截取屏幕
         try {
-            // We use the browser's native capabilities to capture the canvas.
-            // Since our canvas is the main content, we can just grab the data URL from the canvas element.
-            // However, React structure separates CanvasMain. We need a way to access it.
-            // A simple way is to use document.querySelector since there is only one main canvas.
-            // Or better, expose a capture method from CanvasMain via store or ref.
-            // Given the current architecture, querying the canvas element is the most direct way without major refactoring.
-            // We need to target all canvases (layers) and composite them? 
-            // Or just the visible ones. CanvasMain renders multiple canvases for layers.
-            // Actually, CanvasMain renders a container with multiple canvases absolutely positioned.
-            // We need to draw them all onto a temporary canvas.
-            
             await captureAndSave()
             
         } catch (e) {
             console.error("Screenshot failed", e)
         }
 
-        // 4. Reset Flash after short duration
+        // 4. 短暂停留后重置闪光
         setTimeout(() => {
             setFlash(false)
-            // 5. Restore UI (fade in)
+            // 5. 恢复 UI (淡入)
             setIsScreenshotMode(false)
-        }, 100) // Flash duration
+        }, 100) // 闪光持续时间
 
-      }, 500) // Wait for UI fade out
+      }, 500) // 等待 UI 淡出
 
       return () => clearTimeout(captureTimer)
     }
@@ -57,7 +46,7 @@ const ScreenshotOverlay: React.FC = () => {
           const tempCanvas = document.createElement('canvas');
           const width = window.innerWidth;
           const height = window.innerHeight;
-          // Set high resolution for retina displays
+          // 为视网膜显示器设置高分辨率
           const dpr = window.devicePixelRatio || 1;
           tempCanvas.width = width * dpr;
           tempCanvas.height = height * dpr;
@@ -67,33 +56,33 @@ const ScreenshotOverlay: React.FC = () => {
               throw new Error('无法创建画布上下文');
           }
           
-          // Scale context to match dpr
+          // 缩放上下文以匹配 DPR
           ctx.scale(dpr, dpr);
 
-          // 1. Draw Background
+          // 1. 绘制背景
           let bgColor = '#ffffff';
           let gridElement = document.querySelector('.grid-background') as HTMLElement | null;
           
-          // Try to get actual background color from DOM
+          // 尝试从 DOM 获取实际背景颜色
           if (gridElement) {
               const style = window.getComputedStyle(gridElement);
-              // Check if color is not transparent (rgba(0,0,0,0) or transparent)
+              // 检查颜色是否不透明 (rgba(0,0,0,0) 或 transparent)
               if (style.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== 'transparent') {
                   bgColor = style.backgroundColor;
               } else {
-                  // Fallback to body background
+                  // 回退到 body 背景
                    const bodyStyle = window.getComputedStyle(document.body);
                    if (bodyStyle.backgroundColor && bodyStyle.backgroundColor !== 'rgba(0, 0, 0, 0)' && bodyStyle.backgroundColor !== 'transparent') {
                        bgColor = bodyStyle.backgroundColor;
                    } else {
-                       // Fallback based on theme
+                       // 根据主题回退
                        if (theme === 'default') bgColor = THEME_BACKGROUND_COLOR;
                        else if (theme === 'dark') bgColor = '#000000';
                        else bgColor = '#ffffff';
                    }
               }
           } else {
-               // Fallback based on theme if grid not found
+               // 如果找不到网格，根据主题回退
                if (theme === 'default') bgColor = THEME_BACKGROUND_COLOR;
                else if (theme === 'dark') bgColor = '#000000';
                else bgColor = '#ffffff';
@@ -102,23 +91,23 @@ const ScreenshotOverlay: React.FC = () => {
           ctx.fillStyle = bgColor;
           ctx.fillRect(0, 0, width, height);
 
-          // 1.5 Draw Grid Lines (Only for Default Theme)
+          // 1.5 绘制网格线 (仅限默认主题)
           if (theme === 'default' && gridElement) {
               const gridRect = gridElement.getBoundingClientRect();
               
-              // Extract scale from transform matrix
+              // 从变换矩阵中提取缩放比例
               const computedStyle = window.getComputedStyle(gridElement);
               const matrix = new DOMMatrix(computedStyle.transform);
-              const scale = matrix.a; // Scale X
+              const scale = matrix.a; // X轴缩放
               
               const gridSize = 25 * scale;
               let gridColor = 'rgba(128, 128, 128, 0.3)';
 
-              // Try to parse color from computed style to match current grid color
+              // 尝试从计算样式中解析颜色以匹配当前网格颜色
               const bgImage = window.getComputedStyle(gridElement).backgroundImage;
               if (bgImage && bgImage !== 'none') {
-                  // Extract the first color occurrence (rgba, rgb, or hex)
-                  // The background-image is typically: linear-gradient(color 1px, transparent 1px), ...
+                  // 提取第一个出现的颜色 (rgba, rgb 或 hex)
+                  // 背景图像通常是: linear-gradient(color 1px, transparent 1px), ...
                   const match = bgImage.match(/rgba?\([^)]+\)|#[a-fA-F0-9]{3,8}/);
                   if (match) {
                       gridColor = match[0];
@@ -129,26 +118,26 @@ const ScreenshotOverlay: React.FC = () => {
               ctx.lineWidth = 1;
               ctx.beginPath();
               
-              // Calculate start positions to ensure lines align with the visual grid
-              // gridRect.left is the visual start of the grid element container
-              // The pattern repeats from (0,0) of the element.
+              // 计算起始位置以确保线条与视觉网格对齐
+              // gridRect.left 是网格元素容器的视觉起始点
+              // 图案从元素的 (0,0) 开始重复
               
-              // Vertical Lines
+              // 垂直线
               const startX = gridRect.left;
-              // We need to draw lines from 0 to width, aligned with startX + N * gridSize
-              // Find first line index that is visible (>= 0)
+              // 我们需要从 0 到 width 绘制线条，与 startX + N * gridSize 对齐
+              // 找到第一个可见的线条索引 (>= 0)
               // startX + N * gridSize >= 0  =>  N * gridSize >= -startX  =>  N >= -startX / gridSize
               const startN_X = Math.floor(-startX / gridSize);
-              // Ensure we cover the whole screen, start slightly before 0 just in case
+              // 确保覆盖整个屏幕，以防万一从稍早于 0 的位置开始
               for (let x = startX + startN_X * gridSize; x < width; x += gridSize) {
-                  if (x >= 0) { // Only draw if within viewport
-                       // Move to half-pixel to keep lines crisp? Canvas usually handles this.
+                  if (x >= 0) { // 仅在视口内绘制
+                       // 移动到半像素以保持线条清晰？Canvas 通常会自动处理。
                        ctx.moveTo(x, 0);
                        ctx.lineTo(x, height);
                   }
               }
               
-              // Horizontal Lines
+              // 水平线
               const startY = gridRect.top;
               const startN_Y = Math.floor(-startY / gridSize);
               for (let y = startY + startN_Y * gridSize; y < height; y += gridSize) {
@@ -161,16 +150,16 @@ const ScreenshotOverlay: React.FC = () => {
               ctx.stroke();
           }
 
-          // 2. Draw Canvases (Layers)
-          // Query all canvas elements in the container
+          // 2. 绘制画布 (图层)
+          // 查询容器内的所有 canvas 元素
           const canvases = Array.from(canvasContainer.querySelectorAll('canvas'));
           
           if (canvases.length === 0) {
               console.warn('Screenshot: No canvas elements found inside .canvas-container');
           }
 
-          // Sort by z-index to ensure correct stacking order
-          // We use computed style because z-index might be inline or from class
+          // 按 z-index 排序以确保正确的堆叠顺序
+          // 我们使用计算样式，因为 z-index 可能来自内联样式或类
           canvases.sort((a, b) => {
               const zA = parseInt(window.getComputedStyle(a).zIndex) || 0;
               const zB = parseInt(window.getComputedStyle(b).zIndex) || 0;
@@ -181,16 +170,16 @@ const ScreenshotOverlay: React.FC = () => {
           canvases.forEach(canvas => {
               const rect = canvas.getBoundingClientRect();
               
-              // Only draw if it's visible in viewport
+              // 仅绘制视口中可见的部分
               if (
                   rect.right > 0 &&
                   rect.bottom > 0 &&
                   rect.left < width &&
                   rect.top < height
               ) {
-                  // Draw using the screen coordinates
-                  // getBoundingClientRect returns coordinates relative to viewport
-                  // which matches our tempCanvas coordinate system (0,0 is top-left of screen)
+                  // 使用屏幕坐标绘制
+                  // getBoundingClientRect 返回相对于视口的坐标
+                  // 这与我们的 tempCanvas 坐标系匹配 (0,0 是屏幕左上角)
                   ctx.drawImage(
                       canvas, 
                       rect.left, 
@@ -204,7 +193,7 @@ const ScreenshotOverlay: React.FC = () => {
           
           console.log(`Screenshot: Composited ${drawnCount} canvas layers.`);
 
-          // 3. Convert and Download
+          // 3. 转换并下载
           const dataUrl = tempCanvas.toDataURL('image/jpeg', 0.9);
           
           const link = document.createElement('a');
@@ -216,7 +205,7 @@ const ScreenshotOverlay: React.FC = () => {
           message.success('截屏已保存');
       } catch (error) {
           console.error('Screenshot capture error:', error);
-          throw error; // Re-throw to be caught by the effect
+          throw error; // 重新抛出以被效果捕获
       }
   }
 

@@ -3,6 +3,7 @@ import { message } from 'antd'
 import { LuSlack, LuCopy, LuMic, LuMicOff, LuCamera } from "react-icons/lu";
 import { IoWarningOutline } from "react-icons/io5";
 import { FaLocationArrow } from "react-icons/fa6";
+import { useTranslation } from 'react-i18next';
 import '../styles/CanvasMenu.css'
 import '../styles/ConfirmModal.css'
 import ThemeControls from './ThemeControls';
@@ -15,6 +16,7 @@ import { websocketService } from '../services/websocketService'
 import { audioService } from '../services/audioService'
 import RoomDeletedModal from './RoomDeletedModal'
 function CanvasIndex({ onBack }: { onBack: () => void }) {
+  const { t } = useTranslation();
   const [showBackButton, setShowBackButton] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -39,14 +41,14 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
       if (isAudioEnabled) {
         audioService.disableMicrophone()
         setIsAudioEnabled(false)
-        message.info('麦克风已关闭，仍可收听他人声音')
+        message.info(t('menu.micOffInfo'))
       } else {
         await audioService.enableMicrophone()
         setIsAudioEnabled(true)
-        message.success('麦克风已开启')
+        message.success(t('menu.micOn'))
       }
     } catch (error) {
-      message.error('无法访问麦克风')
+      message.error(t('menu.micError'))
       console.error(error)
     }
   }
@@ -89,12 +91,12 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
     try {
       websocketService.disconnect()
       await leaveRoom({ roomId })
-      message.success('已退出房间')
+      message.success(t('menu.exitSuccess'))
       setRoomId(null)
       setIsRoomOwner(false)
       onBack()
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '退出房间失败')
+      message.error(error instanceof Error ? error.message : t('menu.exitError'))
     }
   }
 
@@ -102,9 +104,9 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
     if (!roomId) return;
     try {
       await navigator.clipboard.writeText(roomId);
-      message.success('房间ID已复制');
+      message.success(t('menu.copySuccess'));
     } catch (err) {
-      message.error('复制失败');
+      message.error(t('menu.copyError'));
     }
   }
 
@@ -112,13 +114,13 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
     try {
       websocketService.disconnect()
       await deleteRoom({ roomId })
-      message.success('房间已解散')
+      message.success(t('menu.roomDissolved'))
       handleCloseConfirmModal()
       setRoomId(null)
       setIsRoomOwner(false)
       onBack()
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '删除房间失败')
+      message.error(error instanceof Error ? error.message : t('menu.deleteRoomError'))
     }
   }
 
@@ -156,7 +158,7 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
                   <button
                     onClick={toggleAudio}
                     className="location-button"
-                    title={isAudioEnabled ? "关闭麦克风" : "开启音频通话"}
+                    title={isAudioEnabled ? t('menu.muteMic') : t('menu.enableAudioCall')}
                     style={{
                       backgroundColor: isAudioEnabled ? 'rgba(76, 175, 80, 0.2)' : undefined,
                       borderColor: isAudioEnabled ? '#4CAF50' : undefined,
@@ -164,16 +166,16 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
                     }}
                   >
                     {isAudioEnabled ? <LuMic size={12} /> : <LuMicOff size={12} />}
-                    {isAudioEnabled ? '关闭音频' : '开启音频'}
+                    {isAudioEnabled ? t('menu.disableAudio') : t('menu.enableAudio')}
                   </button>
                 </div>
-                <span className="room-label">房间ID</span>
+                <span className="room-label">{t('menu.roomId')}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="room-id">{roomId}</span>
                   <button
                     onClick={handleCopyRoomId}
                     className="copy-button"
-                    title="复制房间ID"
+                    title={t('menu.copyRoomId')}
                   >
                     <LuCopy size={14} />
                   </button>
@@ -181,9 +183,9 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
                 <button
                   onClick={() => useCanvasStore.getState().triggerLocationBroadcast()}
                   className="location-button"
-                  title="发送当前位置给所有人"
+                  title={t('menu.broadcastLocation')}
                 >
-                  <FaLocationArrow size={12} /> 发送坐标
+                  <FaLocationArrow size={12} /> {t('menu.sendCoordinates')}
                 </button>
 
                 <DndProvider backend={HTML5Backend}>
@@ -198,12 +200,12 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
               }}
               className="location-button"
               style={{ marginTop: '8px' }}
-              title="截取当前视口"
+              title={t('menu.screenshotViewport')}
             >
-              <LuCamera size={16} /> 截屏
+              <LuCamera size={16} /> {t('menu.screenshot')}
             </button>
             <button className="back-button" onClick={handleExitRoom}>
-              ← 退出
+              ← {t('menu.exit')}
             </button>
           </div>
         </div>
@@ -215,14 +217,14 @@ function CanvasIndex({ onBack }: { onBack: () => void }) {
             <div className="confirm-modal-icon">
               <IoWarningOutline />
             </div>
-            <h2 className="confirm-modal-title">确认解散房间</h2>
-            <p className="confirm-modal-message">您是房主，退出后房间将自动解散，是否继续？</p>
+            <h2 className="confirm-modal-title">{t('menu.confirmDissolveTitle')}</h2>
+            <p className="confirm-modal-message">{t('menu.confirmDissolveMessage')}</p>
             <div className="confirm-modal-buttons">
               <button className="confirm-modal-button cancel" onClick={handleCancelDelete}>
-                取消
+                {t('menu.cancel')}
               </button>
               <button className="confirm-modal-button confirm" onClick={handleConfirmDelete}>
-                确认解散
+                {t('menu.confirmDissolve')}
               </button>
             </div>
           </div>

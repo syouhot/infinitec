@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { message } from 'antd'
 import { CloseOutlined, CheckCircleOutlined } from '@ant-design/icons'
+import { useTranslation } from 'react-i18next'
 import '../styles/RegisterModal.css'
 import { registerUser } from '../services/userService'
 import { useAuth } from '../contexts/AuthContext'
@@ -13,6 +14,7 @@ interface RegisterModalProps {
 }
 
 function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     username: '',
     phone: '',
@@ -55,21 +57,21 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
 
   const handleRegister = async () => {
     if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword || !formData.phone) {
-      message.warning('请填写所有必填字段')
+      message.warning(t('register.fillAll'))
       return
     }
 
     if (formData.password !== formData.confirmPassword) {
-      message.warning('两次输入的密码不一致')
+      message.warning(t('register.passwordMismatch'))
       return
     }
     if (formData.password.length < 8) {
-      message.warning('密码长度不能小于8位')
+      message.warning(t('register.passwordLength'))
       return
     }
 
     if (formData.phone.length !== 11) {
-      message.warning('请输入正确的手机号')
+      message.warning(t('register.invalidPhone'))
       return
     }
 
@@ -87,7 +89,7 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
 
     } catch (error) {
       console.error('注册错误:', error)
-      message.error(error instanceof Error ? error.message : '注册失败，请稍后重试')
+      message.error(error instanceof Error ? error.message : t('register.error'))
     }
   }
 
@@ -105,19 +107,19 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
             <div className="success-icon-wrapper">
               <CheckCircleOutlined />
             </div>
-            <h2 className="register-modal-title">注册成功</h2>
+            <h2 className="register-modal-title">{t('register.successTitle')}</h2>
             <div className="success-message">
-              <p>验证邮件已发送至：<span className="highlight-email">{formData.email}</span></p>
-              <p>请登录邮箱点击验证链接完成账号激活</p>
-              <p className="sub-text">验证完成后，请使用邮箱和密码登录</p>
+              <p>{t('register.successMessage1')}<span className="highlight-email">{formData.email}</span></p>
+              <p>{t('register.successMessage2')}</p>
+              <p className="sub-text">{t('register.successMessage3')}</p>
             </div>
             <button className="register-submit-button" onClick={() => { handleClose(); onSwitchToLogin(); }}>
-              前往登录
+              {t('register.goToLogin')}
             </button>
           </div>
         ) : (
           <>
-            <h2 className="register-modal-title">用户注册</h2>
+            <h2 className="register-modal-title">{t('register.title')}</h2>
             <div className="register-form">
               <div className="form-group" style={{ flex: 1 }}>
                 <input
@@ -125,7 +127,7 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  placeholder="用户名"
+                  placeholder={t('register.usernamePlaceholder')}
                   maxLength={20}
                 />
               </div>
@@ -136,7 +138,7 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="邮箱"
+                  placeholder={t('register.emailPlaceholder')}
                 />
               </div>
               <div className="form-group" style={{ flex: 1 }}>
@@ -145,7 +147,7 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  placeholder="手机号"
+                  placeholder={t('register.phonePlaceholder')}
                   maxLength={11}
                 />
               </div>
@@ -156,7 +158,7 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  placeholder="密码"
+                  placeholder={t('register.passwordPlaceholder')}
                 />
               </div>
               <div className="form-group" style={{ flex: 1 }}>
@@ -165,17 +167,17 @@ function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps)
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  placeholder="确认密码"
+                  placeholder={t('register.confirmPasswordPlaceholder')}
                 />
               </div>
 
               <button className="register-submit-button" onClick={handleRegister} style={{ marginTop: '20px' }}>
-                注 册
+                {t('register.submit')}
               </button>
               <p className="switch-auth-text">
-                已有账号？
+                {t('register.hasAccount')}
                 <span className="switch-auth-link" onClick={onSwitchToLogin}>
-                  立即登录
+                  {t('register.loginLink')}
                 </span>
               </p>
             </div>

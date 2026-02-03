@@ -4,6 +4,7 @@ import {
   FaUnderline, FaStrikethrough, FaAlignLeft, FaAlignCenter, FaAlignRight,
   FaFont, FaTextHeight, FaFill
 } from 'react-icons/fa6';
+import { useTranslation } from 'react-i18next';
 import { FONT_SIZES } from '../constants';
 import '../styles/TextEditor.css';
 
@@ -48,6 +49,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
   onConfirm,
   onCancel
 }, ref) => {
+  const { t } = useTranslation()
   const [rect, setRect] = useState({ x: initialPosition.x, y: initialPosition.y, width: 200, height: 100 });
   const [content, setContent] = useState('');
 
@@ -286,10 +288,10 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
 
       {/* Toolbar */}
       <div className="text-toolbar" style={uiStyle} onMouseDown={(e) => e.stopPropagation()}>
-        <button className="toolbar-btn primary" onClick={handleConfirm} onMouseDown={(e) => e.preventDefault()} title="确定">
+        <button className="toolbar-btn primary" onClick={handleConfirm} onMouseDown={(e) => e.preventDefault()} title={t('textEditor.confirm')}>
           <FaCheck />
         </button>
-        <button className="toolbar-btn danger" onClick={onCancel} onMouseDown={(e) => e.preventDefault()} title="取消">
+        <button className="toolbar-btn danger" onClick={onCancel} onMouseDown={(e) => e.preventDefault()} title={t('textEditor.cancel')}>
           <FaXmark />
         </button>
 
@@ -298,7 +300,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
         <button
           className="toolbar-btn"
           onMouseDown={(e) => handleMouseDown(e, 'move')}
-          title="拖拽移动"
+          title={t('textEditor.move')}
           style={{ cursor: 'move' }}
         >
           <FaArrowsUpDownLeftRight />
@@ -309,7 +311,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
         <div className="toolbar-btn-wrapper">
           <button
             className={`toolbar-btn ${showColorPicker ? 'active' : ''}`}
-            title="文字颜色"
+            title={t('textEditor.textColor')}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => togglePopover(setShowColorPicker, showColorPicker)}
           >
@@ -334,7 +336,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
                   className="color-picker-input"
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
-                  title="自定义颜色"
+                  title={t('textEditor.customColor')}
                 />
               </div>
             </div>
@@ -345,7 +347,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
         <div className="toolbar-btn-wrapper">
           <button
             className={`toolbar-btn ${showBgColorPicker ? 'active' : ''}`}
-            title="背景颜色"
+            title={t('textEditor.bgColor')}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => togglePopover(setShowBgColorPicker, showBgColorPicker)}
           >
@@ -370,7 +372,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
                   className="color-picker-input"
                   value={backgroundColor === 'transparent' ? '#ffffff' : backgroundColor}
                   onChange={(e) => setBackgroundColor(e.target.value)}
-                  title="自定义背景色"
+                  title={t('textEditor.customBgColor')}
                 />
               </div>
             </div>
@@ -383,7 +385,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
         <div className="toolbar-btn-wrapper">
           <button
             className={`toolbar-btn ${showFontPicker ? 'active' : ''}`}
-            title="字体"
+            title={t('textEditor.fontFamily')}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => togglePopover(setShowFontPicker, showFontPicker)}
           >
@@ -412,7 +414,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
         <div className="toolbar-btn-wrapper">
           <button
             className={`toolbar-btn ${showSizeSlider ? 'active' : ''}`}
-            title="字号"
+            title={t('textEditor.fontSize')}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => togglePopover(setShowSizeSlider, showSizeSlider)}
           >
@@ -439,17 +441,17 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
         <div className="toolbar-separator" />
 
         {/* Styles */}
-        <button className={`toolbar-btn ${isBold ? 'active' : ''}`} onClick={() => setIsBold(!isBold)} onMouseDown={(e) => e.preventDefault()} title="粗体"><FaBold /></button>
-        <button className={`toolbar-btn ${isItalic ? 'active' : ''}`} onClick={() => setIsItalic(!isItalic)} onMouseDown={(e) => e.preventDefault()} title="斜体"><FaItalic /></button>
-        <button className={`toolbar-btn ${isUnderline ? 'active' : ''}`} onClick={() => setIsUnderline(!isUnderline)} onMouseDown={(e) => e.preventDefault()} title="下划线"><FaUnderline /></button>
-        <button className={`toolbar-btn ${isStrikethrough ? 'active' : ''}`} onClick={() => setIsStrikethrough(!isStrikethrough)} onMouseDown={(e) => e.preventDefault()} title="中划线"><FaStrikethrough /></button>
+        <button className={`toolbar-btn ${isBold ? 'active' : ''}`} onClick={() => setIsBold(!isBold)} onMouseDown={(e) => e.preventDefault()} title={t('textEditor.bold')}><FaBold /></button>
+        <button className={`toolbar-btn ${isItalic ? 'active' : ''}`} onClick={() => setIsItalic(!isItalic)} onMouseDown={(e) => e.preventDefault()} title={t('textEditor.italic')}><FaItalic /></button>
+        <button className={`toolbar-btn ${isUnderline ? 'active' : ''}`} onClick={() => setIsUnderline(!isUnderline)} onMouseDown={(e) => e.preventDefault()} title={t('textEditor.underline')}><FaUnderline /></button>
+        <button className={`toolbar-btn ${isStrikethrough ? 'active' : ''}`} onClick={() => setIsStrikethrough(!isStrikethrough)} onMouseDown={(e) => e.preventDefault()} title={t('textEditor.strikethrough')}><FaStrikethrough /></button>
 
         <div className="toolbar-separator" />
 
         {/* Align */}
-        <button className={`toolbar-btn ${textAlign === 'left' ? 'active' : ''}`} onClick={() => setTextAlign('left')} onMouseDown={(e) => e.preventDefault()} title="左对齐"><FaAlignLeft /></button>
-        <button className={`toolbar-btn ${textAlign === 'center' ? 'active' : ''}`} onClick={() => setTextAlign('center')} onMouseDown={(e) => e.preventDefault()} title="居中"><FaAlignCenter /></button>
-        <button className={`toolbar-btn ${textAlign === 'right' ? 'active' : ''}`} onClick={() => setTextAlign('right')} onMouseDown={(e) => e.preventDefault()} title="右对齐"><FaAlignRight /></button>
+        <button className={`toolbar-btn ${textAlign === 'left' ? 'active' : ''}`} onClick={() => setTextAlign('left')} onMouseDown={(e) => e.preventDefault()} title={t('textEditor.alignLeft')}><FaAlignLeft /></button>
+        <button className={`toolbar-btn ${textAlign === 'center' ? 'active' : ''}`} onClick={() => setTextAlign('center')} onMouseDown={(e) => e.preventDefault()} title={t('textEditor.alignCenter')}><FaAlignCenter /></button>
+        <button className={`toolbar-btn ${textAlign === 'right' ? 'active' : ''}`} onClick={() => setTextAlign('right')} onMouseDown={(e) => e.preventDefault()} title={t('textEditor.alignRight')}><FaAlignRight /></button>
       </div>
     </div>
   );

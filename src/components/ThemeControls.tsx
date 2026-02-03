@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import '../styles/CanvasMenu.css';
 
 interface ThemeControlsProps {
@@ -8,6 +9,7 @@ interface ThemeControlsProps {
 }
 
 function ThemeControls({ onThemeChange, defaultValue = 'default', style = {} }: ThemeControlsProps) {
+  const { t } = useTranslation();
   const [currentTheme, setCurrentTheme] = useState<'default' | 'dark' | 'light'>(defaultValue);
 
   const handleThemeChange = (theme: 'default' | 'dark' | 'light') => {
@@ -29,28 +31,28 @@ function ThemeControls({ onThemeChange, defaultValue = 'default', style = {} }: 
 
   return (
     <div className="theme-options" style={style}>
-      <span>主题:</span>
+      <span>{t('theme.label')}</span>
       <div className="theme-buttons">
         <button 
           className={`theme-btn ${currentTheme === 'default' ? 'active' : ''}`} 
           data-theme="default"
           onClick={() => handleThemeChange('default')}
         >
-          默认
+          {t('theme.default')}
         </button>
         <button 
           className={`theme-btn ${currentTheme === 'dark' ? 'active' : ''}`} 
           data-theme="dark"
           onClick={() => handleThemeChange('dark')}
         >
-          黑色
+          {t('theme.dark')}
         </button>
         <button 
           className={`theme-btn ${currentTheme === 'light' ? 'active' : ''}`} 
           data-theme="light"
           onClick={() => handleThemeChange('light')}
         >
-          白色
+          {t('theme.light')}
         </button>
       </div>
     </div>

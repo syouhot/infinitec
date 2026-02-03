@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
+import { useTranslation } from 'react-i18next';
 import { useCanvasStore } from '../store';
 import { websocketService } from '../services/websocketService';
 import { LuEye, LuEyeOff } from "react-icons/lu";
@@ -175,15 +176,17 @@ export const LayerManager: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
       // No auto-sync
   }, []);
 
+  const { t } = useTranslation();
+
   const getLabel = (id: string) => {
     if (id === 'local') {
         const myId = websocketService.getUserId();
         const me = onlineUsers.find(u => u.userId === myId);
         // console.log('me', me);
-        return me ? `${me.userName} (Me)` : 'Me (Local)';
+        return me ? `${me.userName} (${t('layerManager.me')})` : t('layerManager.meLocal');
     }
     const user = onlineUsers.find(u => u.userId === id);
-    return user ? user.userName : `User: ${id.slice(0, 6)}...`;
+    return user ? user.userName : `${t('layerManager.user')}: ${id.slice(0, 6)}...`;
   };
 
   // Reverse layerOrder for display (Top Layer at Top of List)
@@ -196,30 +199,22 @@ export const LayerManager: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
   return (
     <div className="layer-manager-container">
       <div className="layer-manager-header">
-          <span>画布层级 ({displayLayers.length})</span>
+          <span>{t('layerManager.title')} ({displayLayers.length})</span>
       </div>
-      {displayLayers.map((id, index) => (
-        <LayerItem
-          key={id}
-          index={index}
-          id={id}
-          label={getLabel(id)}
-          moveLayer={moveLayer}
-          onDrop={handleDrop}
-          isOwner={isOwner}
-          isHidden={hiddenLayerIds.includes(id)}
-          onToggleVisibility={() => toggleLayerVisibility(id)}
-        />
-      ))}
-      <div style={{ padding: '8px 0' }}>
-        <button
-          onClick={handleSendLayerOrder}
-          className="location-button"
-          title="发送当前层级给所有人"
-          style={{ width: '100%', justifyContent: 'center' }}
-        >
-          <FaLocationArrow size={12} /> 发送层级
-        </button>
+      <div className="layer-list">
+        {displayLayers.map((id, index) => (
+          <LayerItem
+            key={id}
+            index={index}
+            id={id}
+            label={getLabel(id)}
+            moveLayer={moveLayer}
+            onDrop={handleSendLayerOrder}
+            isOwner={isOwner}
+            isHidden={hiddenLayerIds.includes(id)}
+            onToggleVisibility={() => toggleLayerVisibility(id)}
+          />
+        ))}
       </div>
     </div>
   );

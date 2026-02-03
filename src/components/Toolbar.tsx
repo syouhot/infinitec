@@ -9,14 +9,23 @@ import {
   FaDrawPolygon, 
   FaFont,
   FaEraser,
-  FaImage
+  FaImage,
+  FaRotateLeft,
+  FaRotateRight
 } from 'react-icons/fa6'
+import { useTranslation } from 'react-i18next'
 import { message } from 'antd'
 import { useToolStore, useCanvasStore } from '../store'
 import { buildApiUrl } from '../services/apiConfig'
 import '../styles/Toolbar.css'
 
-function Toolbar() {
+interface ToolbarProps {
+  onUndo?: () => void
+  onRedo?: () => void
+}
+
+function Toolbar({ onUndo, onRedo }: ToolbarProps) {
+    const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
     const selectedTool = useToolStore((state) => state.selectedTool)
     const setSelectedTool = useToolStore((state) => state.setSelectedTool)
@@ -49,22 +58,22 @@ function Toolbar() {
           img.src = data.url
         } catch (error) {
           console.error('Image upload failed:', error)
-          message.error('图片上传失败，请重试')
+          message.error(t('toolbar.uploadFailed'))
         }
       }
       e.target.value = ''
     }
 
     const tools = [
-    { id: 'pencil', icon: FaPencil, label: '画笔' },
-    { id: 'rectangle', icon: FaRegSquare, label: '矩形' },
-    { id: 'circle', icon: FaRegCircle, label: '圆形' },
-    { id: 'line', icon: FaMinus, label: '直线' },
-    { id: 'arrow', icon: FaArrowRight, label: '箭头' },
-    { id: 'polygon', icon: FaDrawPolygon, label: '多边形' },
-    { id: 'text', icon: FaFont, label: '文本' },
-    { id: 'eraser', icon: FaEraser, label: '橡皮擦' },
-    { id: 'image', icon: FaImage, label: '图片' }
+    { id: 'pencil', icon: FaPencil, label: t('toolbar.pencil') },
+    { id: 'rectangle', icon: FaRegSquare, label: t('toolbar.rectangle') },
+    { id: 'circle', icon: FaRegCircle, label: t('toolbar.circle') },
+    { id: 'line', icon: FaMinus, label: t('toolbar.line') },
+    { id: 'arrow', icon: FaArrowRight, label: t('toolbar.arrow') },
+    { id: 'polygon', icon: FaDrawPolygon, label: t('toolbar.polygon') },
+    { id: 'text', icon: FaFont, label: t('toolbar.text') },
+    { id: 'eraser', icon: FaEraser, label: t('toolbar.eraser') },
+    { id: 'image', icon: FaImage, label: t('toolbar.image') }
   ]
 
   return (
@@ -76,6 +85,25 @@ function Toolbar() {
         <div className={`indicator-line ${isOpen ? 'open' : ''}`}></div>
       </div>
       <div className={`toolbar-panel ${isOpen ? 'open' : ''}`}>
+        <div className="undo-redo-group">
+          <button
+            className="tool-button"
+            onClick={onUndo}
+            title={t('toolbar.undo')}
+          >
+            <FaRotateLeft size={20} />
+            <span className="tool-tooltip">{t('toolbar.undo')}</span>
+          </button>
+          <button
+            className="tool-button"
+            onClick={onRedo}
+            title={t('toolbar.redo')}
+          >
+            <FaRotateRight size={20} />
+            <span className="tool-tooltip">{t('toolbar.redo')}</span>
+          </button>
+        </div>
+        <div className="toolbar-divider"></div>
         {tools.map(tool => (
           <button
             key={tool.id}

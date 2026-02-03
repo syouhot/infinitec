@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import '../styles/RoomDeletedModal.css'
 
 interface RoomDeletedModalProps {
@@ -7,6 +8,8 @@ interface RoomDeletedModalProps {
 }
 
 const RoomDeletedModal: React.FC<RoomDeletedModalProps> = ({ isOpen, onConfirm }) => {
+  const { t } = useTranslation()
+
   if (!isOpen) return null
 
   return (
@@ -15,10 +18,10 @@ const RoomDeletedModal: React.FC<RoomDeletedModalProps> = ({ isOpen, onConfirm }
         <div className="room-deleted-icon">
           🚫
         </div>
-        <h2 className="room-deleted-title">房间已解散</h2>
-        <p className="room-deleted-message">当前房间已解散，请重新创建或加入其他房间</p>
+        <h2 className="room-deleted-title">{t('roomDeleted.title')}</h2>
+        <p className="room-deleted-message">{t('roomDeleted.message')}</p>
         <button className="room-deleted-button" onClick={onConfirm}>
-          确定
+          {t('roomDeleted.confirm')}
         </button>
       </div>
     </div>

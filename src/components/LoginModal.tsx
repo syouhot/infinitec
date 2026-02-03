@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { message } from 'antd'
 import { CloseOutlined } from '@ant-design/icons'
+import { useTranslation } from 'react-i18next'
 import '../styles/RegisterModal.css'
 import { loginUser } from '../services/userService'
 import { useAuth } from '../contexts/AuthContext'
@@ -14,6 +15,7 @@ interface LoginModalProps {
 }
 
 function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwitchToForgotPassword }: LoginModalProps) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -48,7 +50,7 @@ function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwitchToForgotPassw
 
   const handleLogin = async () => {
     if (!formData.email || !formData.password) {
-      message.warning('请填写邮箱和密码')
+      message.warning(t('login.fillAll'))
       return
     }
 
@@ -60,7 +62,7 @@ function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwitchToForgotPassw
 
       login(result.token, result.user)
 
-      message.success('登录成功！')
+      message.success(t('login.success'))
       handleClose()
       setFormData({
         email: '',
@@ -68,7 +70,7 @@ function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwitchToForgotPassw
       })
     } catch (error) {
       console.error('登录错误:', error)
-      message.error(error instanceof Error ? error.message : '登录失败，请稍后重试')
+      message.error(error instanceof Error ? error.message : t('login.error'))
     }
   }
 
@@ -80,36 +82,36 @@ function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwitchToForgotPassw
         <button className="register-close-button" onClick={handleClose}>
           <CloseOutlined />
         </button>
-        <h2 className="register-modal-title">用户登录</h2>
+        <h2 className="register-modal-title">{t('login.title')}</h2>
         <div className="register-form">
           <div className="form-group">
-            <label>邮箱</label>
+            <label>{t('login.email')}</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleInputChange}
-              placeholder="请输入邮箱"
+              placeholder={t('login.emailPlaceholder')}
             />
           </div>
           <div className="form-group">
-            <label>密码</label>
+            <label>{t('login.password')}</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleInputChange}
-              placeholder="请输入密码"
+              placeholder={t('login.passwordPlaceholder')}
             />
           </div>
           <button className="register-submit-button" onClick={handleLogin}>
-            登 录
+            {t('login.submit')}
           </button>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <p className="switch-auth-text">
-              还没有账号？
+              {t('login.noAccount')}
               <span className="switch-auth-link" onClick={onSwitchToRegister}>
-                立即注册
+                {t('login.registerLink')}
               </span>
             </p>
             <span
@@ -123,7 +125,7 @@ function LoginModal({ isOpen, onClose, onSwitchToRegister, onSwitchToForgotPassw
               onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
               onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'}
             >
-              忘记密码？
+              {t('login.forgotPassword')}
             </span>
           </div>
         </div>
